@@ -504,7 +504,11 @@ const firebaseConfig = {
   messagingSenderId: "796193873991",
   appId: "1:796193873991:web:7347063857953d4a7dd162"
 };
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+} catch (e) {
+  console.error("Error inicializando Firebase:", e);
+}
 const fbAuth = firebase.auth();
 const fbDB   = firebase.firestore();
 
