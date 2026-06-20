@@ -493,6 +493,7 @@ table.summary tbody tr td:first-child { font-weight: 600; }
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
   <script>
+
 /* ============================================================
    Firebase — configuración e inicialización
    ============================================================ */
@@ -517,8 +518,10 @@ const FS_DOC_PATH = ["estudio", "clientes"];
 function fsDocRef() {
   return fbDB.collection(FS_DOC_PATH[0]).doc(FS_DOC_PATH[1]);
 }
-</script>
-  /* ============================================================
+
+  </script>
+  <script>
+/* ============================================================
    Datos de referencia del Monotributo (Argentina)
    Tabla vigente desde 01/02/2026 (ARCA / ex-AFIP).
    Los topes anuales de ingresos brutos son editables por año
@@ -1529,6 +1532,7 @@ Object.assign(window, { Icon, MoneyInput, CellMoney, MonthGrid, PatrimonioTable,
 
   
   
+  
   </script>
   <script type="text/babel">
 /* ============================================================
@@ -1839,6 +1843,7 @@ Object.assign(window, { ContribuyenteSection, PatrimonioInicialSection, YearPane
 
   
   
+  
   </script>
   <script type="text/babel">
 /* ============================================================
@@ -1985,6 +1990,7 @@ function TablaMonotributoSection() {
 
 Object.assign(window, { ResumenSection, TablaMonotributoSection });
 
+  
   
   
   </script>
@@ -2413,6 +2419,7 @@ function Root() {
 ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
 
 
+  
   
   </script>
 </body>
