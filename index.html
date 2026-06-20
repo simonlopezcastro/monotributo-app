@@ -1,0 +1,2415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análisis Patrimonial — Monotributistas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  /* Neutrales (slate frío) */
+  --ink-900: oklch(0.21 0.02 250);
+  --ink-700: oklch(0.37 0.02 250);
+  --ink-500: oklch(0.55 0.02 250);
+  --ink-400: oklch(0.66 0.015 250);
+  --line: oklch(0.91 0.008 250);
+  --line-strong: oklch(0.85 0.01 250);
+  --surface: oklch(0.99 0.003 250);
+  --surface-2: oklch(0.975 0.005 250);
+  --bg: oklch(0.965 0.006 250);
+  --white: #ffffff;
+
+  /* Acento (teal/esmeralda — finanzas) */
+  --accent: oklch(0.52 0.11 195);
+  --accent-strong: oklch(0.45 0.12 200);
+  --accent-soft: oklch(0.95 0.03 195);
+
+  /* Semáforo */
+  --ok: oklch(0.58 0.13 155);
+  --ok-soft: oklch(0.95 0.05 155);
+  --warn: oklch(0.74 0.15 75);
+  --warn-soft: oklch(0.96 0.07 80);
+  --bad: oklch(0.58 0.18 25);
+  --bad-soft: oklch(0.96 0.06 25);
+
+  /* Dólar */
+  --usd: oklch(0.5 0.06 150);
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow-sm: 0 1px 2px oklch(0.4 0.02 250 / 0.06), 0 1px 3px oklch(0.4 0.02 250 / 0.05);
+  --shadow-md: 0 2px 6px oklch(0.4 0.02 250 / 0.07), 0 6px 18px oklch(0.4 0.02 250 / 0.06);
+
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink-900);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select { font-family: inherit; }
+
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; white-space: nowrap; }
+
+/* ============ App shell ============ */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  height: 60px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.topbar .brand .logo {
+  display: flex; align-items: center;
+}
+.topbar .brand .title { font-size: 15px; }
+.topbar .brand .sub { font-size: 11.5px; color: var(--ink-500); font-weight: 500; }
+.topbar .spacer { flex: 1; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--white);
+  color: var(--ink-700);
+  font-size: 13px; font-weight: 500;
+  transition: background .12s, border-color .12s, transform .04s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--ink-400); }
+.btn:active { transform: translateY(1px); }
+.btn.primary {
+  background: var(--accent); border-color: var(--accent); color: white;
+}
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.danger { color: var(--bad); }
+.btn.danger:hover { background: var(--bad-soft); border-color: var(--bad); }
+.btn svg { width: 15px; height: 15px; }
+
+/* ============ Layout body ============ */
+.body {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+}
+.sidenav {
+  position: sticky;
+  top: 60px;
+  width: 230px;
+  flex-shrink: 0;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  padding: 18px 14px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.sidenav .group-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-400);
+  padding: 6px 10px; margin-top: 10px;
+}
+.navitem {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  padding: 8px 10px; margin: 1px 0;
+  border-radius: var(--radius-sm);
+  border: none; background: transparent;
+  color: var(--ink-700); font-size: 13px; font-weight: 500;
+}
+.navitem:hover { background: var(--surface-2); }
+.navitem.active { background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+.navitem .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.navitem .yr-badge {
+  margin-left: auto; font-size: 10px; font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 36px 80px;
+  max-width: 1180px;
+}
+
+/* ============ Section + cards ============ */
+.section-head { margin-bottom: 18px; }
+.section-head h1 {
+  font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 4px;
+}
+.section-head p { margin: 0; color: var(--ink-500); font-size: 13.5px; max-width: 70ch; }
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+.card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.card-head h2 { font-size: 14.5px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.card-head > svg { width: 17px; height: 17px; flex-shrink: 0; color: var(--accent); }
+.verdict .icon svg { width: 20px; height: 20px; }
+.card-head .hint { font-size: 12px; color: var(--ink-500); }
+.card-head .spacer { flex: 1; }
+.card-body { padding: 18px; }
+.card-body.tight { padding: 10px 18px 14px; }
+
+/* ============ Forms ============ */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink-700); }
+.field .desc { font-size: 11.5px; color: var(--ink-400); font-weight: 400; }
+.grid-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+input.inp, select.inp {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--ink-900);
+  font-size: 13.5px;
+  transition: border-color .12s, box-shadow .12s;
+}
+input.inp:focus, select.inp:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input.inp.money { font-family: var(--font-mono); text-align: right; font-feature-settings: "tnum" 1; }
+input.inp::placeholder { color: var(--ink-400); }
+
+.inp-prefix {
+  position: relative;
+}
+.inp-prefix > span {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-400); font-size: 12px; font-family: var(--font-mono);
+  pointer-events: none;
+}
+.inp-prefix input { padding-left: 24px; }
+
+/* ============ Tables ============ */
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tbl th, table.tbl td { padding: 8px 12px; text-align: right; }
+table.tbl th:first-child, table.tbl td:first-child { text-align: left; }
+table.tbl thead th {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--ink-500); border-bottom: 1px solid var(--line-strong);
+  background: var(--surface-2);
+}
+table.tbl tbody tr { border-bottom: 1px solid var(--line); }
+table.tbl tbody tr:last-child { border-bottom: none; }
+table.tbl tbody tr:hover { background: var(--surface-2); }
+table.tbl tfoot td {
+  border-top: 2px solid var(--line-strong);
+  font-weight: 700; background: var(--surface-2);
+}
+table.tbl .cell-input input {
+  width: 100%; border: 1px solid transparent; background: transparent;
+  padding: 5px 6px; border-radius: 5px; text-align: right;
+  font-family: var(--font-mono); font-size: 13px; font-feature-settings: "tnum" 1;
+  color: var(--ink-900);
+}
+table.tbl .cell-input input:hover { border-color: var(--line-strong); background: var(--white); }
+table.tbl .cell-input input:focus { outline: none; border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+.usd-val { color: var(--usd); font-size: 11.5px; }
+
+/* ============ Month grid ============ */
+.months {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.month-cell {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 9px;
+  background: var(--surface);
+}
+.month-cell label { font-size: 10.5px; font-weight: 700; color: var(--ink-400); text-transform: uppercase; letter-spacing: 0.04em; }
+.month-cell input {
+  width: 100%; border: none; background: transparent; padding: 3px 0 0;
+  font-family: var(--font-mono); font-size: 13.5px; text-align: right; color: var(--ink-900);
+  font-feature-settings: "tnum" 1;
+}
+.month-cell input:focus { outline: none; }
+.month-cell:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* ============ Badges / status ============ */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 100px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
+}
+.badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+.badge.ok { background: var(--ok-soft); color: oklch(0.4 0.13 155); }
+.badge.ok .dot { background: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: oklch(0.48 0.13 65); }
+.badge.warn .dot { background: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: oklch(0.47 0.18 25); }
+.badge.bad .dot { background: var(--bad); }
+.badge.neutral { background: var(--surface-2); color: var(--ink-500); border: 1px solid var(--line); }
+
+.dot-ok { background: var(--ok); }
+.dot-warn { background: var(--warn); }
+.dot-bad { background: var(--bad); }
+.dot-neutral { background: var(--ink-400); }
+
+/* ============ Result panel ============ */
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.stat {
+  background: var(--white);
+  padding: 14px 16px;
+}
+.stat .lbl { font-size: 11px; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px; }
+.stat .val { font-family: var(--font-mono); font-size: 21px; font-weight: 600; margin-top: 5px; letter-spacing: -0.01em; }
+.stat .val.pos { color: var(--ok); }
+.stat .val.neg { color: var(--bad); }
+.stat .usd { font-size: 12px; color: var(--usd); font-family: var(--font-mono); margin-top: 2px; }
+
+.justif {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.justif .col h3 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ink-500); margin: 0 0 8px; font-weight: 700;
+}
+.justif .row {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 0; border-bottom: 1px dashed var(--line);
+  font-size: 13px;
+}
+.justif .row .v { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.justif .row.total { border-bottom: none; border-top: 2px solid var(--line-strong); font-weight: 700; margin-top: 4px; padding-top: 9px; }
+
+.verdict {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; border-radius: var(--radius);
+  margin-bottom: 18px;
+}
+.verdict.ok { background: var(--ok-soft); border: 1px solid var(--ok); }
+.verdict.warn { background: var(--warn-soft); border: 1px solid var(--warn); }
+.verdict.bad { background: var(--bad-soft); border: 1px solid var(--bad); }
+.verdict .icon {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; color: white;
+}
+.verdict.ok .icon { background: var(--ok); }
+.verdict.warn .icon { background: var(--warn); }
+.verdict.bad .icon { background: var(--bad); }
+.verdict .txt strong { font-size: 15px; display: block; }
+.verdict .txt span { font-size: 13px; color: var(--ink-700); }
+.verdict .amt { margin-left: auto; text-align: right; }
+.verdict .amt .n { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
+.verdict .amt .l { font-size: 11px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ============ Alerts ============ */
+.alert {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 14px; border-radius: var(--radius-sm);
+  font-size: 12.5px; margin-top: 12px;
+}
+.alert.warn { background: var(--warn-soft); color: oklch(0.42 0.1 65); }
+.alert.info { background: var(--accent-soft); color: var(--accent-strong); }
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ============ Summary table ============ */
+.summary-wrap { overflow-x: auto; }
+table.summary { min-width: 760px; }
+table.summary tbody tr td:first-child { font-weight: 600; }
+
+.subtle { color: var(--ink-500); }
+.tiny { font-size: 11.5px; }
+.right { text-align: right; }
+.flex { display: flex; align-items: center; gap: 10px; }
+.wrap-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.toggle-usd {
+  display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); overflow: hidden;
+}
+.toggle-usd button {
+  border: none; background: var(--white); padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--ink-500);
+}
+.toggle-usd button.active { background: var(--accent); color: white; }
+
+.empty {
+  text-align: center; padding: 50px 20px; color: var(--ink-400);
+}
+.divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+.year-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.year-tab {
+  padding: 7px 13px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+  background: var(--white); font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--ink-500);
+  display: flex; align-items: center; gap: 7px;
+}
+.year-tab:hover { border-color: var(--ink-400); }
+.year-tab.active { background: var(--ink-900); color: white; border-color: var(--ink-900); }
+.year-tab .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── Multi-contribuyente panel ── */
+.client-btn { gap: 7px; max-width: 220px; }
+.client-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 300px;
+  background: var(--white);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  overflow: hidden;
+}
+.cp-head {
+  padding: 10px 14px 8px;
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--ink-400);
+  border-bottom: 1px solid var(--line);
+}
+.cp-list { max-height: 240px; overflow-y: auto; }
+.cp-item {
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.cp-item.active { background: var(--accent-soft); }
+.cp-select {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1px; padding: 9px 13px;
+  border: none; background: transparent; cursor: pointer; text-align: left;
+}
+.cp-select:hover { background: var(--surface-2); }
+.cp-item.active .cp-select:hover { background: oklch(0.91 0.04 195); }
+.cp-name { font-size: 13px; font-weight: 600; color: var(--ink-900); }
+.cp-cuit { font-size: 11px; font-family: var(--font-mono); color: var(--ink-500); }
+.cp-item.active .cp-name { color: var(--accent-strong); }
+.cp-del {
+  width: 30px; height: 30px; flex-shrink: 0; margin-right: 8px;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--ink-400); font-size: 18px; line-height: 1;
+  border-radius: 50%;
+}
+.cp-del:hover { background: var(--bad-soft); color: var(--bad); }
+.cp-new {
+  display: flex; gap: 8px; padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.cp-input { flex: 1; font-size: 12.5px !important; padding: 7px 9px !important; }
+.cp-add-btn { padding: 7px 11px; font-size: 12px; white-space: nowrap; }
+
+/* ── Multi-contribuyente panel ── */
+.client-btn { gap: 7px; max-width: 220px; }
+.client-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 300px; background: var(--white);
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  box-shadow: var(--shadow-md); z-index: 200; overflow: hidden;
+}
+.cp-head { padding: 10px 14px 8px; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-400);
+  border-bottom: 1px solid var(--line); }
+.cp-list { max-height: 240px; overflow-y: auto; }
+.cp-item { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+.cp-item.active { background: var(--accent-soft); }
+.cp-select { flex: 1; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1px; padding: 9px 13px; border: none; background: transparent; cursor: pointer; text-align: left; }
+.cp-select:hover { background: var(--surface-2); }
+.cp-name { font-size: 13px; font-weight: 600; color: var(--ink-900); }
+.cp-cuit { font-size: 11px; font-family: var(--font-mono); color: var(--ink-500); }
+.cp-item.active .cp-name { color: var(--accent-strong); }
+.cp-del { width: 30px; height: 30px; flex-shrink: 0; margin-right: 8px;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--ink-400); font-size: 18px; line-height: 1; border-radius: 50%; }
+.cp-del:hover { background: var(--bad-soft); color: var(--bad); }
+.cp-new { display: flex; gap: 8px; padding: 10px 12px;
+  border-top: 1px solid var(--line); background: var(--surface); }
+.cp-input { flex: 1; font-size: 12.5px !important; padding: 7px 9px !important; }
+.cp-add-btn { padding: 7px 11px; font-size: 12px; white-space: nowrap; }
+
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <script>
+/* ============================================================
+   Firebase — configuración e inicialización
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB_ZZDXxZGWOhlUFx0qbtRIP1CluGxiMhY",
+  authDomain: "base-patrimonial-estudio.firebaseapp.com",
+  projectId: "base-patrimonial-estudio",
+  storageBucket: "base-patrimonial-estudio.firebasestorage.app",
+  messagingSenderId: "796193873991",
+  appId: "1:796193873991:web:7347063857953d4a7dd162"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDB   = firebase.firestore();
+
+/* Documento único compartido por todo el estudio */
+const FS_DOC_PATH = ["estudio", "clientes"];
+function fsDocRef() {
+  return fbDB.collection(FS_DOC_PATH[0]).doc(FS_DOC_PATH[1]);
+}
+</script>
+  /* ============================================================
+   Datos de referencia del Monotributo (Argentina)
+   Tabla vigente desde 01/02/2026 (ARCA / ex-AFIP).
+   Los topes anuales de ingresos brutos son editables por año
+   dentro de la herramienta, porque cambian semestralmente.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  // Topes ANUALES de ingresos brutos por categoría (en pesos).
+  // Fuente: ARCA, escala vigente desde 01/02/2026.
+  // Categorías I, J, K aplican SOLO a venta de cosas muebles.
+  var TABLA_2026 = [
+    { cat: "A", tope: 10277988.13, soloBienes: false },
+    { cat: "B", tope: 15058447.71, soloBienes: false },
+    { cat: "C", tope: 21113696.52, soloBienes: false },
+    { cat: "D", tope: 26212853.42, soloBienes: false },
+    { cat: "E", tope: 30833964.37, soloBienes: false },
+    { cat: "F", tope: 38642048.36, soloBienes: false },
+    { cat: "G", tope: 46211109.37, soloBienes: false },
+    { cat: "H", tope: 70113407.33, soloBienes: false },
+    { cat: "I", tope: 78479211.62, soloBienes: true },
+    { cat: "J", tope: 89872640.30, soloBienes: true },
+    { cat: "K", tope: 108357084.05, soloBienes: true }
+  ];
+
+  var MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  var MESES_ABBR = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+  // Componentes del patrimonio. Las deudas restan (signo -1).
+  var COMPONENTES = [
+    { key: "inmuebles", label: "Inmuebles", signo: 1 },
+    { key: "rodados", label: "Rodados / vehículos", signo: 1 },
+    { key: "efectivo", label: "Efectivo y bancos", signo: 1 },
+    { key: "inversiones", label: "Inversiones (plazo fijo, acciones, cripto…)", signo: 1 },
+    { key: "muebles", label: "Bienes muebles / otros", signo: 1 },
+    { key: "deudas", label: "Deudas y pasivos", signo: -1 }
+  ];
+
+  // Conceptos que justifican (orígenes) además de la facturación.
+  var ORIGENES = [
+    { key: "ahorrosPrevios", label: "Ahorros de años anteriores", nota: "Sólo el primer año; luego se arrastra como patrimonio." },
+    { key: "prestamos", label: "Préstamos / financiación recibida" },
+    { key: "herencias", label: "Donaciones o herencias recibidas" },
+    { key: "ventaBienes", label: "Venta de otros bienes (precio cobrado)" }
+  ];
+
+  // Tipos de cambio de referencia por año (dólar oficial aprox., $/USD).
+  // Editables por año. Sólo orientativos para mostrar valores en USD.
+  var TC_DEFAULT = {
+    2020: { prom: 70, cierre: 84 },
+    2021: { prom: 95, cierre: 102 },
+    2022: { prom: 130, cierre: 177 },
+    2023: { prom: 296, cierre: 808 },
+    2024: { prom: 920, cierre: 1032 },
+    2025: { prom: 1150, cierre: 1250 },
+    2026: { prom: 1300, cierre: 1350 }
+  };
+
+  function tcParaAnio(anio) {
+    if (TC_DEFAULT[anio]) return Object.assign({}, TC_DEFAULT[anio]);
+    // Extrapolación simple para años nuevos.
+    return { prom: 1300, cierre: 1350 };
+  }
+
+  function topePorCategoria(cat) {
+    var row = TABLA_2026.find(function (r) { return r.cat === cat; });
+    return row ? row.tope : 0;
+  }
+
+  window.MonoData = {
+    TABLA_2026: TABLA_2026,
+    MESES: MESES,
+    MESES_ABBR: MESES_ABBR,
+    COMPONENTES: COMPONENTES,
+    ORIGENES: ORIGENES,
+    TC_DEFAULT: TC_DEFAULT,
+    tcParaAnio: tcParaAnio,
+    topePorCategoria: topePorCategoria
+  };
+})();
+
+  </script>
+  <script>
+/* ============================================================
+   Motor de cálculo — Justificación de variaciones patrimoniales
+   adaptado a monotributistas.
+   Funciones puras: reciben el estado y devuelven resultados.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var COMPONENTES = window.MonoData.COMPONENTES;
+
+  function sum(arr) {
+    return (arr || []).reduce(function (a, b) { return a + (Number(b) || 0); }, 0);
+  }
+
+  function num(v) { return Number(v) || 0; }
+
+  // Patrimonio neto = suma de componentes con su signo (deudas restan).
+  function patrimonioNeto(comp) {
+    if (!comp) return 0;
+    return COMPONENTES.reduce(function (acc, c) {
+      return acc + c.signo * num(comp[c.key]);
+    }, 0);
+  }
+
+  // Activo bruto (sin restar deudas) — útil para mostrar.
+  function activoBruto(comp) {
+    if (!comp) return 0;
+    return COMPONENTES.reduce(function (acc, c) {
+      return c.signo > 0 ? acc + num(comp[c.key]) : acc;
+    }, 0);
+  }
+
+  function calcAnio(anio, pnInicio, cajaAcumPrevia) {
+    var ingresosAnuales = sum(anio.ingresosMensuales);
+    var comprasAnuales = sum(anio.comprasMensuales);
+    var cajaPresuntaAnio = ingresosAnuales - comprasAnuales;
+    var cajaPresuntaAcum = cajaAcumPrevia + cajaPresuntaAnio;
+
+    var o = anio.origenes || {};
+    var otrosOrigenes = num(o.prestamos) + num(o.herencias) + num(o.ventaBienes) + num(o.ahorrosPrevios);
+    var totalOrigenes = ingresosAnuales + otrosOrigenes;
+
+    var pnCierre = patrimonioNeto(anio.patrimonioCierre);
+    var variacionPatrimonial = pnCierre - pnInicio;
+
+    // Cuadro de justificación:
+    // Orígenes (PN inicio + ingresos + otros) = Aplicaciones (PN cierre + consumido)
+    // => consumido implícito es el balanceo.
+    var consumidoImplicito = pnInicio + totalOrigenes - pnCierre;
+
+    var consumoMinimo = num(anio.consumoMinimo);
+    var margen = consumidoImplicito - consumoMinimo;
+
+    var estado;
+    if (consumidoImplicito < 0) estado = "no-justificado";
+    else if (margen < 0) estado = "ajustado";
+    else estado = "justificado";
+
+    var topeAnual = num(anio.topeAnual);
+    var excedeTope = topeAnual > 0 && ingresosAnuales > topeAnual;
+    var usoTope = topeAnual > 0 ? ingresosAnuales / topeAnual : 0;
+
+    var tc = anio.tc || { prom: 1, cierre: 1 };
+
+    return {
+      anio: anio.anio,
+      ingresosAnuales: ingresosAnuales,
+      comprasAnuales: comprasAnuales,
+      cajaPresuntaAnio: cajaPresuntaAnio,
+      cajaPresuntaAcum: cajaPresuntaAcum,
+      otrosOrigenes: otrosOrigenes,
+      totalOrigenes: totalOrigenes,
+      pnInicio: pnInicio,
+      pnCierre: pnCierre,
+      activoCierre: activoBruto(anio.patrimonioCierre),
+      variacionPatrimonial: variacionPatrimonial,
+      consumidoImplicito: consumidoImplicito,
+      consumoMinimo: consumoMinimo,
+      margen: margen,
+      estado: estado,
+      topeAnual: topeAnual,
+      excedeTope: excedeTope,
+      usoTope: usoTope,
+      // Liquidez declarada vs presunta (cruce)
+      liquidezDeclarada: num((anio.patrimonioCierre || {}).efectivo) + num((anio.patrimonioCierre || {}).inversiones),
+      tc: tc,
+      // Valores en USD (orientativos)
+      usd: {
+        ingresosAnuales: tc.prom ? ingresosAnuales / tc.prom : 0,
+        pnCierre: tc.cierre ? pnCierre / tc.cierre : 0,
+        consumidoImplicito: tc.prom ? consumidoImplicito / tc.prom : 0,
+        margen: tc.prom ? margen / tc.prom : 0,
+        cajaPresuntaAcum: tc.cierre ? cajaPresuntaAcum / tc.cierre : 0
+      }
+    };
+  }
+
+  function computeAll(state) {
+    var anios = (state.anios || []).slice().sort(function (a, b) { return a.anio - b.anio; });
+    var pnInicial = patrimonioNeto(state.patrimonioInicial);
+    var resultados = [];
+    var pnInicioActual = pnInicial;
+    var cajaAcum = 0;
+
+    for (var i = 0; i < anios.length; i++) {
+      var r = calcAnio(anios[i], pnInicioActual, cajaAcum);
+      resultados.push(r);
+      pnInicioActual = r.pnCierre; // el cierre se arrastra como inicio del siguiente
+      cajaAcum = r.cajaPresuntaAcum;
+    }
+
+    var totalIngresos = resultados.reduce(function (a, r) { return a + r.ingresosAnuales; }, 0);
+    var totalConsumido = resultados.reduce(function (a, r) { return a + r.consumidoImplicito; }, 0);
+    var ultimo = resultados[resultados.length - 1];
+
+    return {
+      patrimonioNetoInicial: pnInicial,
+      resultados: resultados,
+      resumen: {
+        totalIngresos: totalIngresos,
+        totalConsumido: totalConsumido,
+        pnFinal: ultimo ? ultimo.pnCierre : pnInicial,
+        cajaPresuntaAcum: ultimo ? ultimo.cajaPresuntaAcum : 0,
+        liquidezDeclaradaFinal: ultimo ? ultimo.liquidezDeclarada : 0,
+        crecimientoPatrimonial: (ultimo ? ultimo.pnCierre : pnInicial) - pnInicial,
+        aniosNoJustificados: resultados.filter(function (r) { return r.estado === "no-justificado"; }).length,
+        aniosAjustados: resultados.filter(function (r) { return r.estado === "ajustado"; }).length
+      }
+    };
+  }
+
+  window.MonoCalc = {
+    sum: sum,
+    patrimonioNeto: patrimonioNeto,
+    activoBruto: activoBruto,
+    calcAnio: calcAnio,
+    computeAll: computeAll
+  };
+})();
+
+  </script>
+  <script>
+/* Formato de números en es-AR + helpers de UI */
+(function () {
+  "use strict";
+
+  var nf0 = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
+  var nf2 = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function money(v, opts) {
+    opts = opts || {};
+    var n = Number(v) || 0;
+    var sign = n < 0 ? "-" : "";
+    var abs = Math.abs(n);
+    var body = opts.dec ? nf2.format(abs) : nf0.format(Math.round(abs));
+    var cur = opts.usd ? "US$" : "$";
+    return sign + cur + " " + body;
+  }
+
+  function plain(v) {
+    var n = Number(v) || 0;
+    return nf0.format(Math.round(n));
+  }
+
+  // Parser tolerante: acepta "1.234.567,89" o "1234567.89".
+  function parse(str) {
+    if (typeof str === "number") return str;
+    if (!str) return 0;
+    var s = String(str).trim().replace(/[^\d.,-]/g, "");
+    if (s === "" || s === "-") return 0;
+    // Si tiene tanto . como , asumimos formato es-AR (. miles, , decimal)
+    if (s.indexOf(",") > -1 && s.indexOf(".") > -1) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else if (s.indexOf(",") > -1) {
+      s = s.replace(",", ".");
+    }
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  window.Fmt = { money: money, plain: plain, parse: parse };
+})();
+
+  </script>
+  <script>
+/* ============================================================
+   Exportación a Excel (.xlsx) con fórmulas vivas (SheetJS)
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var MESES = window.MonoData.MESES;
+  var Z_MONEY = '#,##0';
+
+  function cellN(v) { return { t: "n", v: Number(v) || 0, z: Z_MONEY }; }
+  function cellF(f, cached) { return { t: "n", f: f, v: Number(cached) || 0, z: Z_MONEY }; }
+  function cellS(s) { return { t: "s", v: s == null ? "" : String(s) }; }
+
+  // Construye una hoja a partir de filas [ [A, B], ... ] donde cada celda
+  // puede ser string, número, o {f, v} para fórmula.
+  function makeSheet(rows) {
+    var ws = {};
+    var maxC = 0, maxR = rows.length;
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r] || [];
+      for (var c = 0; c < row.length; c++) {
+        if (c > maxC) maxC = c;
+        var val = row[c];
+        if (val === null || val === undefined || val === "") continue;
+        var addr = XLSX.utils.encode_cell({ r: r, c: c });
+        if (typeof val === "number") ws[addr] = cellN(val);
+        else if (typeof val === "string") ws[addr] = cellS(val);
+        else if (val.f) ws[addr] = cellF(val.f, val.v);
+        else if (val.bold) ws[addr] = cellS(val.t || "");
+        else ws[addr] = cellS(String(val));
+      }
+    }
+    ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxR, c: Math.max(maxC, 1) } });
+    ws["!cols"] = [{ wch: 34 }, { wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
+    return ws;
+  }
+
+  function sheetNameForYear(y) { return "Año " + y; }
+
+  function build(state, computed) {
+    var wb = XLSX.utils.book_new();
+    var anios = state.anios.slice().sort(function (a, b) { return a.anio - b.anio; });
+
+    /* ---- Contribuyente ---- */
+    var c = state.contribuyente || {};
+    var wsC = makeSheet([
+      ["ANÁLISIS PATRIMONIAL — MONOTRIBUTISTA"],
+      [],
+      ["Nombre / Razón social", cellS(c.nombre || "")],
+      ["CUIT", cellS(c.cuit || "")],
+      ["Actividad", cellS(c.actividad || "")],
+      ["Tipo de actividad", cellS(c.tipoActividad === "bienes" ? "Venta de cosas muebles" : "Prestación de servicios")],
+      ["Período analizado", cellS(anios.length ? (anios[0].anio + " a " + anios[anios.length - 1].anio) : "—")],
+      ["Generado", cellS(new Date().toLocaleDateString("es-AR"))]
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsC, "Contribuyente");
+
+    /* ---- Patrimonio inicial ---- */
+    var pi = state.patrimonioInicial || {};
+    var wsI = makeSheet([
+      ["PATRIMONIO INICIAL — al 01/01/" + state.anioBase],
+      [],
+      ["Componente", "Pesos"],
+      ["Inmuebles", cellN(pi.inmuebles)],
+      ["Rodados / vehículos", cellN(pi.rodados)],
+      ["Efectivo y bancos", cellN(pi.efectivo)],
+      ["Inversiones", cellN(pi.inversiones)],
+      ["Bienes muebles / otros", cellN(pi.muebles)],
+      ["Deudas y pasivos (resta)", cellN(pi.deudas)],
+      ["PATRIMONIO NETO INICIAL", cellF("B4+B5+B6+B7+B8-B9", computed.patrimonioNetoInicial)]
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsI, "P. Inicial");
+
+    /* ---- Una hoja por año ---- */
+    anios.forEach(function (a, idx) {
+      var res = computed.resultados[idx];
+      var rows = [];
+      rows.push(["EJERCICIO " + a.anio + "  ·  Categoría " + a.categoria]);
+      rows.push([]);
+      rows.push(["FACTURACIÓN MENSUAL", "Pesos"]);              // r2 (0-based) -> data starts r3
+      var factStart = rows.length;                              // index of Enero row
+      for (var m = 0; m < 12; m++) rows.push([MESES[m], cellN((a.ingresosMensuales || [])[m])]);
+      var factEnd = rows.length - 1;
+      rows.push(["Total facturado", cellF("SUM(B" + (factStart + 1) + ":B" + (factEnd + 1) + ")", res.ingresosAnuales)]);
+      var rowFactTotal = rows.length - 1;
+      rows.push([]);
+      rows.push(["COMPRAS / GASTOS MENSUALES", "Pesos"]);
+      var compStart = rows.length;
+      for (var m2 = 0; m2 < 12; m2++) rows.push([MESES[m2], cellN((a.comprasMensuales || [])[m2])]);
+      var compEnd = rows.length - 1;
+      rows.push(["Total compras", cellF("SUM(B" + (compStart + 1) + ":B" + (compEnd + 1) + ")", res.comprasAnuales)]);
+      var rowCompTotal = rows.length - 1;
+      rows.push(["Caja presunta del año", cellF("B" + (rowFactTotal + 1) + "-B" + (rowCompTotal + 1), res.cajaPresuntaAnio)]);
+      var rowCaja = rows.length - 1;
+      rows.push([]);
+      var o = a.origenes || {};
+      rows.push(["OTROS ORÍGENES", "Pesos"]);
+      rows.push(["Ahorros de años anteriores", cellN(o.ahorrosPrevios)]);
+      rows.push(["Préstamos / financiación", cellN(o.prestamos)]);
+      rows.push(["Donaciones / herencias", cellN(o.herencias)]);
+      rows.push(["Venta de otros bienes", cellN(o.ventaBienes)]);
+      var oEnd = rows.length - 1, oStart = oEnd - 3;
+      rows.push(["Total otros orígenes", cellF("SUM(B" + (oStart + 1) + ":B" + (oEnd + 1) + ")", res.otrosOrigenes)]);
+      var rowOtros = rows.length - 1;
+      rows.push([]);
+      var pc = a.patrimonioCierre || {};
+      rows.push(["PATRIMONIO AL 31/12/" + a.anio, "Pesos"]);
+      rows.push(["Inmuebles", cellN(pc.inmuebles)]);
+      rows.push(["Rodados / vehículos", cellN(pc.rodados)]);
+      rows.push(["Efectivo y bancos", cellN(pc.efectivo)]);
+      rows.push(["Inversiones", cellN(pc.inversiones)]);
+      rows.push(["Bienes muebles / otros", cellN(pc.muebles)]);
+      rows.push(["Deudas y pasivos (resta)", cellN(pc.deudas)]);
+      var pEnd = rows.length - 1, pStart = pEnd - 5; // inmuebles..deudas
+      rows.push(["Patrimonio Neto al cierre", cellF("B" + (pStart + 1) + "+B" + (pStart + 2) + "+B" + (pStart + 3) + "+B" + (pStart + 4) + "+B" + (pStart + 5) + "-B" + (pStart + 6), res.pnCierre)]);
+      var rowPNcierre = rows.length - 1;
+      rows.push([]);
+      rows.push(["JUSTIFICACIÓN PATRIMONIAL", ""]);
+      // PN inicio: primer año = P.Inicial!B10 ; resto = hoja año anterior PN cierre
+      var pnIniRef = idx === 0 ? "'P. Inicial'!B10" : "'" + sheetNameForYear(anios[idx - 1].anio) + "'!B" + (rowPNcierre + 1);
+      rows.push(["Patrimonio Neto al inicio", cellF(pnIniRef, res.pnInicio)]);
+      var rowPNini = rows.length - 1;
+      rows.push(["Consumo mínimo razonable", cellN(a.consumoMinimo)]);
+      var rowConsMin = rows.length - 1;
+      rows.push(["Consumido implícito", cellF("B" + (rowPNini + 1) + "+B" + (rowFactTotal + 1) + "+B" + (rowOtros + 1) + "-B" + (rowPNcierre + 1), res.consumidoImplicito)]);
+      var rowConsImp = rows.length - 1;
+      rows.push(["Margen para incorporar bienes", cellF("B" + (rowConsImp + 1) + "-B" + (rowConsMin + 1), res.margen)]);
+      rows.push(["Caja presunta acumulada", cellN(res.cajaPresuntaAcum)]);
+      rows.push([]);
+      rows.push(["Categoría", cellS(a.categoria)]);
+      rows.push(["Tope anual categoría", cellN(a.topeAnual)]);
+      rows.push(["TC promedio", cellN(a.tc.prom)]);
+      rows.push(["TC cierre", cellN(a.tc.cierre)]);
+
+      var ws = makeSheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, sheetNameForYear(a.anio));
+    });
+
+    /* ---- Resumen ---- */
+    var resumenRows = [["RESUMEN CONSOLIDADO"], [], ["Año", "Facturado", "PN cierre", "Δ Patrimonio", "Consumido", "Caja acum.", "Margen", "Estado"]];
+    anios.forEach(function (a, idx) {
+      var res = computed.resultados[idx];
+      var estado = res.estado === "justificado" ? "Justificado" : res.estado === "ajustado" ? "Ajustado" : "No justificado";
+      resumenRows.push([
+        a.anio,
+        cellN(res.ingresosAnuales),
+        cellN(res.pnCierre),
+        cellN(res.variacionPatrimonial),
+        cellN(res.consumidoImplicito),
+        cellN(res.cajaPresuntaAcum),
+        cellN(res.margen),
+        cellS(estado)
+      ]);
+    });
+    var wsR = makeSheet(resumenRows);
+    XLSX.utils.book_append_sheet(wb, wsR, "Resumen");
+
+    /* ---- Tabla Monotributo ---- */
+    var monoRows = [["TABLA MONOTRIBUTO 2026 (vigente 01/02/2026 — ARCA)"], [], ["Categoría", "Tope anual ingresos brutos", "Alcance"]];
+    window.MonoData.TABLA_2026.forEach(function (cat) {
+      monoRows.push([cat.cat, cellN(cat.tope), cat.soloBienes ? "Sólo venta de bienes" : "Servicios y bienes"]);
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet(monoRows), "Monotributo");
+
+    return wb;
+  }
+
+  window.exportExcel = function (state, computed) {
+    if (typeof XLSX === "undefined") { alert("No se pudo cargar el motor de Excel. Verificá tu conexión a internet."); return; }
+    var wb = build(state, computed);
+    var nombre = (state.contribuyente && state.contribuyente.nombre ? state.contribuyente.nombre.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_") : "monotributista");
+    XLSX.writeFile(wb, "Analisis_Patrimonial_" + nombre + ".xlsx");
+  };
+})();
+
+  </script>
+  <script>
+window.generarReportePDF = function(state, computed) {
+  var c = state.contribuyente || {};
+  var anios = state.anios.slice().sort(function(a,b){ return a.anio - b.anio; });
+  var res = computed.resultados;
+  var s = computed.resumen;
+  var fmt = window.Fmt;
+  function money(v) { return fmt.money(v); }
+
+  /* ---- semáforo ---- */
+  var malos  = res.filter(function(r){ return r.estado === 'no-justificado'; });
+  var ajust  = res.filter(function(r){ return r.estado === 'ajustado'; });
+  var buenos = res.filter(function(r){ return r.estado === 'justificado'; });
+  var cruceDiff = s.liquidezDeclaradaFinal - s.cajaPresuntaAcum;
+
+  var conclusionColor, conclusionTitulo, conclusionTexto;
+  if (malos.length > 0) {
+    conclusionColor = 'bad';
+    conclusionTitulo = 'Situación Crítica \u2014 Incrementos Sin Justificar';
+    conclusionTexto = 'Se detectaron ' + malos.length + ' ejercicio(s) en los que el crecimiento patrimonial supera lo que los ingresos declarados permiten justificar. Riesgo fiscal significativo ante una fiscalización de ARCA. Revisar respaldo documental (prestamos, herencias, venta de bienes) para los ejercicios: ' + malos.map(function(r){return r.anio;}).join(', ') + '.';
+  } else if (ajust.length > 0) {
+    conclusionColor = 'warn';
+    conclusionTitulo = 'Situación a Monitorear \u2014 Márgenes Ajustados';
+    conclusionTexto = 'No se registran incrementos no justificados, pero ' + ajust.length + ' ejercicio(s) presentan consumido implicito inferior al minimo razonable. Puede generar observaciones. Ejercicios a revisar: ' + ajust.map(function(r){return r.anio;}).join(', ') + '.';
+  } else {
+    conclusionColor = 'ok';
+    conclusionTitulo = 'Situación Patrimonial Justificada';
+    conclusionTexto = 'El analisis del período ' + ((anios[0]||{}).anio||'') + '\u2013' + ((anios[anios.length-1]||{}).anio||'') + ' no arroja inconsistencias entre los ingresos declarados y el crecimiento patrimonial. El contribuyente puede acreditar el origen de sus bienes con la facturación registrada ante ARCA.';
+  }
+
+  function estadoLabel(e){ return e==='justificado'?'Justificado':e==='ajustado'?'Ajustado / a revisar':'No justificado'; }
+  function estadoCls(e){ return e==='justificado'?'ok':e==='ajustado'?'warn':'bad'; }
+
+  /* ---- SVG BAR CHART ---- */
+  /* A4 content width ~700px, two-col = ~330px, full = ~680px */
+  function barChart(datos, keys, colors, labels, W, H) {
+    var pl=64, pr=12, pt=26, pb=36;
+    var cw=W-pl-pr, ch=H-pt-pb;
+    var n=datos.length; if(!n) return '';
+    var maxV=1;
+    datos.forEach(function(d){ keys.forEach(function(k){ if(Math.abs(d[k]||0)>maxV) maxV=Math.abs(d[k]||0); }); });
+    var bw=Math.max(6, Math.floor(cw/n/keys.length)-3);
+    function bx(i,ki){ return pl+i*(cw/n)+(cw/n-bw*keys.length)/2+ki*bw; }
+    function by(v){ return pt+ch-(Math.abs(v||0)/maxV)*ch; }
+    function bh(v){ return Math.max(1,(Math.abs(v||0)/maxV)*ch); }
+    var svg='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg">';
+    for(var t=0;t<=3;t++){
+      var yv=(t/3)*maxV, yt=pt+ch-(t/3)*ch;
+      var lbl=yv>=1e9?(yv/1e9).toFixed(1)+'B':yv>=1e6?(yv/1e6).toFixed(0)+'M':yv>=1e3?(yv/1e3).toFixed(0)+'K':'0';
+      svg+='<line x1="'+pl+'" y1="'+yt+'" x2="'+(pl+cw)+'" y2="'+yt+'" stroke="#e2e8f0" stroke-width="1"/>';
+      svg+='<text x="'+(pl-5)+'" y="'+(yt+4)+'" text-anchor="end" font-size="8.5" fill="#94a3b8" font-family="IBM Plex Mono,monospace">'+lbl+'</text>';
+    }
+    datos.forEach(function(d,i){
+      keys.forEach(function(k,ki){
+        var v=d[k]||0, fill=v<0?'#ef4444':colors[ki];
+        svg+='<rect x="'+bx(i,ki)+'" y="'+by(v)+'" width="'+(bw-1)+'" height="'+bh(v)+'" fill="'+fill+'" rx="2"/>';
+      });
+      svg+='<text x="'+(pl+i*(cw/n)+cw/n/2)+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="#64748b" font-family="IBM Plex Sans,sans-serif">'+d.anio+'</text>';
+    });
+    labels.forEach(function(l,i){
+      svg+='<rect x="'+(pl+i*120)+'" y="7" width="9" height="9" fill="'+colors[i]+'" rx="2"/>';
+      svg+='<text x="'+(pl+i*120+13)+'" y="15.5" font-size="9" fill="#475569" font-family="IBM Plex Sans,sans-serif">'+l+'</text>';
+    });
+    svg+='</svg>'; return svg;
+  }
+
+  /* ---- SVG LINE CHART ---- */
+  function lineChart(datos, keys, colors, labels, W, H) {
+    var pl=64, pr=12, pt=26, pb=36;
+    var cw=W-pl-pr, ch=H-pt-pb;
+    var n=datos.length; if(n<2) return '<svg width="'+W+'" height="'+H+'"><text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="11">Datos insuficientes</text></svg>';
+    var minV=0, maxV=1;
+    datos.forEach(function(d){ keys.forEach(function(k){ var v=d[k]||0; if(v>maxV)maxV=v; if(v<minV)minV=v; }); });
+    if(maxV===minV) maxV=minV+1;
+    function px(i){ return pl+i*(cw/(n-1)); }
+    function py(v){ return pt+ch-((v-minV)/(maxV-minV))*ch; }
+    var svg='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg">';
+    for(var t=0;t<=3;t++){
+      var yv=minV+(t/3)*(maxV-minV), yt=pt+ch-(t/3)*ch;
+      var lbl=yv>=1e9?(yv/1e9).toFixed(1)+'B':yv>=1e6?(yv/1e6).toFixed(0)+'M':yv>=1e3?(yv/1e3).toFixed(0)+'K':yv.toFixed(0);
+      svg+='<line x1="'+pl+'" y1="'+yt+'" x2="'+(pl+cw)+'" y2="'+yt+'" stroke="#e2e8f0" stroke-width="1"/>';
+      svg+='<text x="'+(pl-5)+'" y="'+(yt+4)+'" text-anchor="end" font-size="8.5" fill="#94a3b8" font-family="IBM Plex Mono,monospace">'+lbl+'</text>';
+    }
+    keys.forEach(function(k,ki){
+      var pts=datos.map(function(d,i){ return px(i)+','+py(d[k]||0); }).join(' ');
+      svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[ki]+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      datos.forEach(function(d,i){
+        svg+='<circle cx="'+px(i)+'" cy="'+py(d[k]||0)+'" r="3" fill="'+colors[ki]+'" stroke="white" stroke-width="1.5"/>';
+      });
+    });
+    datos.forEach(function(d,i){
+      svg+='<text x="'+px(i)+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="#64748b" font-family="IBM Plex Sans,sans-serif">'+d.anio+'</text>';
+    });
+    labels.forEach(function(l,i){
+      svg+='<rect x="'+(pl+i*120)+'" y="7" width="9" height="9" fill="'+colors[i]+'" rx="2"/>';
+      svg+='<text x="'+(pl+i*120+13)+'" y="15.5" font-size="9" fill="#475569" font-family="IBM Plex Sans,sans-serif">'+l+'</text>';
+    });
+    svg+='</svg>'; return svg;
+  }
+
+  /* ---- datos para graficos ---- */
+  var chartData = anios.map(function(a,i){
+    return { anio:a.anio, facturado:res[i].ingresosAnuales, pnCierre:res[i].pnCierre,
+      consumido:Math.max(0,res[i].consumidoImplicito), margen:res[i].margen, variacion:res[i].variacionPatrimonial };
+  });
+
+  /* A4 @96dpi inner width ~670px; dos columnas ~320px cada una */
+  var svgW2 = 320, svgH = 170;
+  var svgWF = 660;
+  var svg1 = barChart(chartData, ['facturado','variacion'], ['#0ea5e9','#6366f1'], ['Facturación anual','Variación patrimonial'], svgW2, svgH);
+  var svg2 = lineChart(chartData, ['pnCierre'], ['#0ea5e9'], ['Patrimonio Neto'], svgW2, svgH);
+  var svg3 = barChart(chartData, ['consumido','margen'], ['#f59e0b','#22c55e'], ['Consumido implícito','Margen disponible'], svgWF, svgH);
+
+  /* ---- tabla año a año ---- */
+  var tablaFilas = res.map(function(r){
+    var cls = estadoCls(r.estado);
+    return '<tr>'+
+      '<td class="mono fw6">'+r.anio+'</td>'+
+      '<td class="num">'+money(r.ingresosAnuales)+'</td>'+
+      '<td class="num">'+money(r.pnCierre)+'</td>'+
+      '<td class="num '+(r.variacionPatrimonial>=0?'c-ok':'c-bad')+'">'+money(r.variacionPatrimonial)+'</td>'+
+      '<td class="num '+(r.consumidoImplicito<0?'c-bad':'')+'">'+money(r.consumidoImplicito)+'</td>'+
+      '<td class="num '+(r.margen>=0?'c-ok':'c-bad')+'">'+money(r.margen)+'</td>'+
+      '<td><span class="badge '+cls+'"><span class="dot"></span>'+estadoLabel(r.estado)+'</span></td>'+
+    '</tr>';
+  }).join('');
+
+  /* ---- composicion patrimonial ---- */
+  var lastAnio = anios[anios.length-1] || {};
+  var pc = lastAnio.patrimonioCierre || {};
+  var pnFinal = res[res.length-1] ? res[res.length-1].pnCierre : 0;
+  var compItems = [
+    {label:'Inmuebles', v:pc.inmuebles||0},
+    {label:'Rodados / vehiculos', v:pc.rodados||0},
+    {label:'Efectivo y bancos', v:pc.efectivo||0},
+    {label:'Inversiones', v:pc.inversiones||0},
+    {label:'Bienes muebles / otros', v:pc.muebles||0},
+    {label:'Deudas y pasivos', v:pc.deudas||0, resta:true}
+  ];
+  var compRows = compItems.map(function(r){
+    return '<tr><td>'+(r.resta?'<span class="c-bad">'+r.label+' (resta)</span>':r.label)+'</td><td class="num">'+money(r.v)+'</td></tr>';
+  }).join('');
+
+  var fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  var periodoStr = anios.length ? anios[0].anio+'\u2013'+anios[anios.length-1].anio : '\u2014';
+  var tipoStr = c.tipoActividad==='bienes'?'Venta de cosas muebles':'Prestación de servicios';
+
+  /* ---- CSS: mismas variables que la app ---- */
+  var CSS = [
+    "@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');",
+    ":root{",
+    "  --ink-900:oklch(0.21 0.02 250);--ink-700:oklch(0.37 0.02 250);--ink-500:oklch(0.55 0.02 250);--ink-400:oklch(0.66 0.015 250);",
+    "  --line:oklch(0.91 0.008 250);--line-strong:oklch(0.85 0.01 250);",
+    "  --surface:oklch(0.99 0.003 250);--surface-2:oklch(0.975 0.005 250);--bg:oklch(0.965 0.006 250);--white:#fff;",
+    "  --accent:oklch(0.52 0.11 195);--accent-strong:oklch(0.45 0.12 200);--accent-soft:oklch(0.95 0.03 195);",
+    "  --ok:oklch(0.58 0.13 155);--ok-soft:oklch(0.95 0.05 155);",
+    "  --warn:oklch(0.74 0.15 75);--warn-soft:oklch(0.96 0.07 80);",
+    "  --bad:oklch(0.58 0.18 25);--bad-soft:oklch(0.96 0.06 25);",
+    "  --radius:8px;--radius-sm:5px;",
+    "  --font-sans:'IBM Plex Sans',system-ui,sans-serif;",
+    "  --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;",
+    "}",
+    "*{box-sizing:border-box;margin:0;padding:0;}",
+    /* --- base --- */
+    "body{font-family:var(--font-sans);font-size:11px;color:var(--ink-900);background:var(--white);line-height:1.45;-webkit-font-smoothing:antialiased;}",
+    /* --- print layout --- */
+    "@page{size:A4 portrait;margin:14mm 16mm 14mm 16mm;}",
+    "@media print{",
+    "  .no-print{display:none!important;}",
+    "  body{font-size:10px;}",
+    "  .page-break{page-break-before:always;break-before:page;}",
+    "  .avoid-break{page-break-inside:avoid;break-inside:avoid;}",
+    "}",
+    /* --- screen wrapper simulates A4 --- */
+    "@media screen{",
+    "  body{background:oklch(0.93 0.006 250);padding:24px 0 40px;}",
+    "  .a4-page{width:210mm;min-height:297mm;background:var(--white);margin:0 auto 20px;box-shadow:0 2px 20px rgba(0,0,0,0.15);padding:14mm 16mm;}",
+    "}",
+    "@media print{",
+    "  .a4-page{width:100%;padding:0;margin:0;box-shadow:none;min-height:unset;}",
+    "}",
+    /* --- topbar portada --- */
+    ".cover{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0c4a6e 100%);color:white;padding:20px 22px 16px;border-radius:var(--radius);margin-bottom:14px;}",
+    ".cover-logo{width:32px;height:32px;background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;margin-bottom:10px;}",
+    ".cover h1{font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px;}",
+    ".cover h2{font-size:11px;font-weight:400;opacity:0.65;margin-bottom:12px;}",
+    ".cover-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);}",
+    ".cover-meta .l{font-size:8.5px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:1px;}",
+    ".cover-meta .v{font-size:11px;font-weight:600;}",
+    /* --- section --- */
+    ".section-title{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-400);border-bottom:2px solid var(--line);padding-bottom:5px;margin-bottom:10px;}",
+    ".section{margin-bottom:12px;}",
+    /* --- conclusion box  (misma clase verdict de la app) --- */
+    ".verdict{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:var(--radius);margin-bottom:0;}",
+    ".verdict.ok{background:var(--ok-soft);border:1px solid var(--ok);}",
+    ".verdict.warn{background:var(--warn-soft);border:1px solid var(--warn);}",
+    ".verdict.bad{background:var(--bad-soft);border:1px solid var(--bad);}",
+    ".verdict .icon{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:white;margin-top:1px;}",
+    ".verdict.ok .icon{background:var(--ok);}.verdict.warn .icon{background:var(--warn);}.verdict.bad .icon{background:var(--bad);}",
+    ".verdict .icon svg{width:15px;height:15px;}",
+    ".verdict .txt strong{font-size:12px;display:block;margin-bottom:3px;}",
+    ".verdict .txt p{font-size:10.5px;color:var(--ink-700);line-height:1.5;}",
+    /* --- kpi grid (igual a .result-grid de la app) --- */
+    ".kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}",
+    ".kpi{background:var(--white);padding:9px 11px;}",
+    ".kpi .l{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-500);margin-bottom:3px;}",
+    ".kpi .v{font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:-0.01em;}",
+    ".kpi .v.pos{color:var(--ok);}.kpi .v.neg{color:var(--bad);}.kpi .v.neu{color:var(--accent);}",
+    /* --- chart boxes --- */
+    ".chart-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}",
+    ".chart-box{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;background:var(--surface);}",
+    ".chart-box h4{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-500);margin-bottom:8px;}",
+    ".chart-box.full{grid-column:1/-1;}",
+    /* --- tables (mismas clases que .tbl de la app) --- */
+    "table.tbl{width:100%;border-collapse:collapse;font-size:10.5px;}",
+    "table.tbl th{background:var(--surface-2);padding:6px 8px;text-align:right;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);border-bottom:1px solid var(--line-strong);}",
+    "table.tbl th:first-child{text-align:left;}",
+    "table.tbl td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);}",
+    "table.tbl td:first-child{text-align:left;}",
+    "table.tbl tbody tr:last-child td{border-bottom:none;}",
+    "table.tbl tfoot td{border-top:2px solid var(--line-strong);font-weight:700;background:var(--surface-2);}",
+    /* --- badges (iguales a la app) --- */
+    ".badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:100px;font-size:9.5px;font-weight:600;}",
+    ".badge .dot{width:6px;height:6px;border-radius:50%;}",
+    ".badge.ok{background:var(--ok-soft);color:oklch(0.4 0.13 155);}.badge.ok .dot{background:var(--ok);}",
+    ".badge.warn{background:var(--warn-soft);color:oklch(0.48 0.13 65);}.badge.warn .dot{background:var(--warn);}",
+    ".badge.bad{background:var(--bad-soft);color:oklch(0.47 0.18 25);}.badge.bad .dot{background:var(--bad);}",
+    /* --- justif cuadro (igual que la app) --- */
+    ".justif{display:grid;grid-template-columns:1fr 1fr;gap:12px;}",
+    ".justif .col h3{font-size:8.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-500);margin-bottom:6px;font-weight:700;}",
+    ".justif .row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:10px;}",
+    ".justif .row .v{font-family:var(--font-mono);font-feature-settings:'tnum' 1;}",
+    ".justif .row.total{border-bottom:none;border-top:2px solid var(--line-strong);font-weight:700;padding-top:6px;margin-top:2px;}",
+    /* --- alert (igual que la app) --- */
+    ".alert-info{display:flex;gap:8px;align-items:flex-start;padding:8px 11px;border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent-strong);font-size:10px;margin-top:8px;}",
+    ".alert-warn{display:flex;gap:8px;align-items:flex-start;padding:8px 11px;border-radius:var(--radius-sm);background:var(--warn-soft);color:oklch(0.42 0.1 65);font-size:10px;margin-top:8px;}",
+    ".alert-info svg,.alert-warn svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}",
+    /* --- helpers --- */
+    ".mono{font-family:var(--font-mono);font-feature-settings:'tnum' 1;}",
+    ".num{font-family:var(--font-mono);font-feature-settings:'tnum' 1;text-align:right;white-space:nowrap;}",
+    ".fw6{font-weight:600;}",
+    ".c-ok{color:var(--ok);}.c-bad{color:var(--bad);}",
+    ".subtle{color:var(--ink-500);}",
+    /* --- footer --- */
+    ".rpt-footer{border-top:1px solid var(--line);padding-top:8px;margin-top:10px;display:flex;justify-content:space-between;font-size:9px;color:var(--ink-400);}",
+    /* --- print btn --- */
+    ".print-btn{position:fixed;bottom:20px;right:20px;background:var(--accent);color:white;border:none;padding:10px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);box-shadow:0 4px 12px rgba(14,165,233,0.35);}",
+    ".print-btn:hover{background:var(--accent-strong);}",
+  ].join('\n');
+
+  /* ---- iconos SVG inline ---- */
+  var icoCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var icoAlert = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>';
+  var icoX    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  var icoMap  = {ok:icoCheck, warn:icoAlert, bad:icoX};
+
+  /* ---- cuadro justificación (último año) ---- */
+  var lastRes = res[res.length-1];
+  var justifHtml = '';
+  if(lastRes){
+    justifHtml = '<div class="justif avoid-break">'+
+      '<div class="col"><h3>Orígenes</h3>'+
+        '<div class="row"><span>PN al inicio</span><span class="v">'+money(lastRes.pnInicio)+'</span></div>'+
+        '<div class="row"><span>+ Facturación del año</span><span class="v">'+money(lastRes.ingresosAnuales)+'</span></div>'+
+        '<div class="row"><span>+ Otros orígenes</span><span class="v">'+money(lastRes.otrosOrígenes)+'</span></div>'+
+        '<div class="row total"><span>Total orígenes</span><span class="v">'+money(lastRes.pnInicio+lastRes.totalOrígenes)+'</span></div>'+
+      '</div>'+
+      '<div class="col"><h3>Aplicaciones</h3>'+
+        '<div class="row"><span>PN al cierre</span><span class="v">'+money(lastRes.pnCierre)+'</span></div>'+
+        '<div class="row"><span>+ Consumido implícito</span><span class="v '+(lastRes.consumidoImplicito<0?'c-bad':'')+'">'+money(lastRes.consumidoImplicito)+'</span></div>'+
+        '<div class="row total"><span>Total aplicaciones</span><span class="v">'+money(lastRes.pnCierre+lastRes.consumidoImplicito)+'</span></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---- cruce liquidez texto ---- */
+  var cruceTxt = cruceDiff>=0
+    ? 'La liquidez declarada supera la caja presunta en '+money(cruceDiff)+'. Ese excedente debe estar respaldado por otros origenes documentados (prestamos, herencias, ventas de bienes).'
+    : 'La liquidez declarada es inferior a la caja presunta en '+money(Math.abs(cruceDiff))+'. La diferencia se presume consumida o volcada a bienes no liquidos.';
+
+  /* ====== HTML DEL REPORTE ====== */
+  var H = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>'+
+    '<title>Reporte Patrimonial \u2014 '+(c.nombre||'Contribuyente')+'</title>'+
+    '<style>'+CSS+'</style></head><body>'+
+    '<button class="print-btn no-print" onclick="window.print()">\uD83D\uDDA8\uFE0F Imprimir / Guardar PDF</button>'+
+
+    /* ===== PAGINA 1 ===== */
+    '<div class="a4-page">'+
+
+    /* portada */
+    '<div class="cover avoid-break">'+
+      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">'+
+        '<img src="data:image/png;base64,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" style="height:44px;" alt="L\\u00f3pez Castro"/>'+'<span style="font-size:18px;color:rgba(255,255,255,0.4);font-weight:400;align-self:stretch;display:flex;align-items:flex-end;padding-bottom:1px;font-family:Georgia,serif;">]</span>'+'</div>'+
+        '<div>'+
+          '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.15em;opacity:0.55;margin-bottom:1px;">An\u00e1lisis Patrimonial</div>'+
+          '<div style="font-size:8.5px;opacity:0.45;letter-spacing:0.06em;">Justificaci\u00f3n de bienes &mdash; R\u00e9gimen de Monotributo</div>'+
+        '</div>'+
+      '</div>'+
+      '<h1>An\u00e1lisis Patrimonial &mdash; '+(c.nombre||'Contribuyente')+'</h1>'+
+      '<h2></h2>'+
+      '<div class="cover-meta">'+
+        '<div><div class="l">Contribuyente</div><div class="v">'+(c.nombre||'\u2014')+'</div></div>'+
+        '<div><div class="l">CUIT</div><div class="v">'+(c.cuit||'\u2014')+'</div></div>'+
+        '<div><div class="l">Actividad</div><div class="v">'+(c.actividad||'\u2014')+'</div></div>'+
+        '<div><div class="l">Tipo</div><div class="v">'+tipoStr+'</div></div>'+
+        '<div><div class="l">Período</div><div class="v">'+periodoStr+'</div></div>'+
+        '<div><div class="l">Fecha del informe</div><div class="v">'+fecha+'</div></div>'+
+      '</div>'+
+    '</div>'+
+
+    /* conclusion */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Conclusión del análisis</div>'+
+      '<div class="verdict '+conclusionColor+'">'+
+        '<div class="icon">'+icoMap[conclusionColor]+'</div>'+
+        '<div class="txt"><strong>'+conclusionTitulo+'</strong><p>'+conclusionTexto+'</p></div>'+
+      '</div>'+
+    '</div>'+
+
+    /* kpis */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Indicadores clave del período</div>'+
+      '<div class="kpi-grid">'+
+        '<div class="kpi"><div class="l">Facturación total</div><div class="v neu">'+money(s.totalIngresos)+'</div></div>'+
+        '<div class="kpi"><div class="l">PN inicial</div><div class="v">'+money(computed.patrimonioNetoInicial)+'</div></div>'+
+        '<div class="kpi"><div class="l">PN final</div><div class="v">'+money(s.pnFinal)+'</div></div>'+
+        '<div class="kpi"><div class="l">Crecimiento patrimonial</div><div class="v '+(s.crecimientoPatrimonial>=0?'pos':'neg')+'">'+money(s.crecimientoPatrimonial)+'</div></div>'+
+        '<div class="kpi"><div class="l">Consumo total implícito</div><div class="v">'+money(s.totalConsumido)+'</div></div>'+
+        '<div class="kpi"><div class="l">Caja presunta acum.</div><div class="v">'+money(s.cajaPresuntaAcum)+'</div></div>'+
+        '<div class="kpi"><div class="l">Años justificados</div><div class="v pos">'+buenos.length+' / '+res.length+'</div></div>'+
+        '<div class="kpi"><div class="l">Años con alerta</div><div class="v '+(malos.length>0?'neg':ajust.length>0?'neg':'pos')+'">'+(malos.length+ajust.length)+' / '+res.length+'</div></div>'+
+      '</div>'+
+    '</div>'+
+
+    /* graficos fila 1: dos columnas */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Evolución gráfica</div>'+
+      '<div class="chart-row">'+
+        '<div class="chart-box"><h4>Facturación vs. Variación patrimonial</h4>'+svg1+'</div>'+
+        '<div class="chart-box"><h4>Evolución del Patrimonio Neto</h4>'+svg2+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    /* grafico fila 2: full width */
+    '<div class="section avoid-break">'+
+      '<div class="chart-box full"><h4>Consumido implícito y margen disponible por año</h4>'+svg3+'</div>'+
+    '</div>'+
+
+    /* footer pag 1 */
+    '<div class="rpt-footer"><span>Análisis Patrimonial &mdash; López Castro Estudio</span><span>Página 1 de 2 &nbsp;&bull;&nbsp; '+fecha+'</span></div>'+
+
+    '</div>'+ /* /a4-page 1 */
+
+    /* ===== PAGINA 2 ===== */
+    '<div class="a4-page page-break">'+
+
+    /* tabla año a año */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Detalle año a año</div>'+
+      '<table class="tbl"><thead><tr>'+
+        '<th>Año</th><th>Facturado</th><th>PN Cierre</th><th>Variación</th><th>Consumido</th><th>Margen</th><th style="text-align:left">Estado</th>'+
+      '</tr></thead><tbody>'+tablaFilas+'</tbody></table>'+
+    '</div>'+
+
+    /* composicion patrimonial */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Composición patrimonial al cierre de '+(lastAnio.anio||'\u2014')+'</div>'+
+      '<table class="tbl"><thead><tr><th>Componente</th><th>Valor en pesos</th></tr></thead>'+
+      '<tbody>'+compRows+'</tbody>'+
+      '<tfoot><tr><td>Patrimonio Neto</td><td class="num">'+money(pnFinal)+'</td></tr></tfoot>'+
+      '</table>'+
+    '</div>'+
+
+    /* cuadro de justificación último año */
+    '<div class="section">'+
+      '<div class="section-title">Cuadro de justificación &mdash; último ejercicio ('+(lastAnio.anio||'\u2014')+')</div>'+
+      justifHtml+
+    '</div>'+
+
+    /* cruce liquidez */
+    '<div class="section avoid-break">'+
+      '<div class="section-title">Cruce de liquidez</div>'+
+      '<table class="tbl"><thead><tr><th>Concepto</th><th>Importe</th></tr></thead><tbody>'+
+        '<tr><td>Caja presunta acumulada (facturado − compras)</td><td class="num">'+money(s.cajaPresuntaAcum)+'</td></tr>'+
+        '<tr><td>Liquidez declarada al cierre (efectivo + inversiones)</td><td class="num">'+money(s.liquidezDeclaradaFinal)+'</td></tr>'+
+      '</tbody><tfoot><tr>'+
+        '<td>Diferencia</td>'+
+        '<td class="num '+(cruceDiff>=0?'c-ok':'c-bad')+'">'+money(cruceDiff)+'</td>'+
+      '</tr></tfoot></table>'+
+      '<div class="'+(cruceDiff>=0?'alert-info':'alert-warn')+'" style="margin-top:8px;">'+
+        icoAlert+'<span>'+cruceTxt+'</span>'+
+      '</div>'+
+    '</div>'+
+
+    /* nota al pie */
+    '<div class="alert-warn avoid-break" style="margin-bottom:10px;">'+
+      icoAlert+'<span>Este informe es de uso interno. Las cifras surgen de los datos cargados por el estudio contable y no reemplazan la declaración jurada ni la documentación de respaldo fiscal.</span>'+
+    '</div>'+
+
+    /* footer pag 2 */
+    '<div class="rpt-footer"><span>Análisis Patrimonial &mdash; López Castro Estudio</span><span>Página 2 de 2 &nbsp;&bull;&nbsp; '+fecha+'</span></div>'+
+
+    '</div>'+ /* /a4-page 2 */
+    '</body></html>';
+
+  var blob = new Blob([H], {type: 'text/html;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.target = '_blank';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+};
+  </script>
+
+  <script type="text/babel">
+/* ============================================================
+   Componentes de UI reutilizables
+   ============================================================ */
+const { useState, useRef, useEffect } = React;
+const Fmt = window.Fmt;
+
+/* ---- Iconos (stroke, estilo Lucide) ---- */
+const Icon = {
+  plus: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M12 5v14M5 12h14"/></svg>,
+  trash: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg>,
+  download: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+  check: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>,
+  alert: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>,
+  x: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>,
+  user: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>,
+  wallet: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M3 5v14M16 12h5v4h-5a2 2 0 0 1 0-4z"/></svg>,
+  calendar: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+  chart: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg>,
+  table: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>,
+  reset: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg>
+};
+
+/* ---- Input de dinero con formato es-AR al perder foco ---- */
+function MoneyInput({ value, onChange, className, placeholder, prefix }) {
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setText(value ? Fmt.plain(value) : "");
+  }, [value, focused]);
+  const cls = "inp money" + (className ? " " + className : "");
+  const inp = (
+    <input
+      className={cls}
+      inputMode="decimal"
+      placeholder={placeholder || "0"}
+      value={text}
+      onFocus={(e) => { setFocused(true); setText(value ? String(value) : ""); requestAnimationFrame(() => e.target.select()); }}
+      onBlur={() => { setFocused(false); }}
+      onChange={(e) => { setText(e.target.value); onChange(Fmt.parse(e.target.value)); }}
+    />
+  );
+  if (prefix) return <div className="inp-prefix"><span>{prefix}</span>{inp}</div>;
+  return inp;
+}
+
+/* ---- Celda de tabla con input de dinero ---- */
+function CellMoney({ value, onChange }) {
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setText(value ? Fmt.plain(value) : ""); }, [value, focused]);
+  return (
+    <td className="cell-input num">
+      <input
+        inputMode="decimal"
+        placeholder="0"
+        value={text}
+        onFocus={(e) => { setFocused(true); setText(value ? String(value) : ""); requestAnimationFrame(() => e.target.select()); }}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => { setText(e.target.value); onChange(Fmt.parse(e.target.value)); }}
+      />
+    </td>
+  );
+}
+
+/* ---- Grilla de 12 meses ---- */
+function MonthGrid({ values, onChange }) {
+  const MESES_ABBR = window.MonoData.MESES_ABBR;
+  return (
+    <div className="months">
+      {MESES_ABBR.map((m, i) => (
+        <MonthCell key={i} label={m} value={values[i]} onChange={(v) => {
+          const next = values.slice(); next[i] = v; onChange(next);
+        }} />
+      ))}
+    </div>
+  );
+}
+function MonthCell({ label, value, onChange }) {
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setText(value ? Fmt.plain(value) : ""); }, [value, focused]);
+  return (
+    <div className="month-cell">
+      <label>{label}</label>
+      <input
+        inputMode="decimal" placeholder="0" value={text}
+        onFocus={(e) => { setFocused(true); setText(value ? String(value) : ""); requestAnimationFrame(() => e.target.select()); }}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => { setText(e.target.value); onChange(Fmt.parse(e.target.value)); }}
+      />
+    </div>
+  );
+}
+
+/* ---- Tabla de componentes del patrimonio ---- */
+function PatrimonioTable({ comp, onChange, tcCierre, showUsd }) {
+  const COMPONENTES = window.MonoData.COMPONENTES;
+  const MonoCalc = window.MonoCalc;
+  const pn = MonoCalc.patrimonioNeto(comp);
+  return (
+    <table className="tbl">
+      <thead>
+        <tr>
+          <th>Componente</th>
+          <th>Pesos</th>
+          {showUsd && <th>USD (cierre)</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {COMPONENTES.map((c) => {
+          const v = Number(comp[c.key]) || 0;
+          return (
+            <tr key={c.key}>
+              <td>{c.label}{c.signo < 0 && <span className="subtle tiny"> (resta)</span>}</td>
+              <CellMoney value={comp[c.key]} onChange={(val) => onChange(Object.assign({}, comp, { [c.key]: val }))} />
+              {showUsd && <td className="usd-val num">{tcCierre ? Fmt.money(v / tcCierre, { usd: true }) : "—"}</td>}
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Patrimonio Neto</td>
+          <td className="num">{Fmt.money(pn)}</td>
+          {showUsd && <td className="usd-val num">{tcCierre ? Fmt.money(pn / tcCierre, { usd: true }) : "—"}</td>}
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
+/* ---- Badge de estado ---- */
+function EstadoBadge({ estado }) {
+  const map = {
+    "justificado": { cls: "ok", txt: "Justificado" },
+    "ajustado": { cls: "warn", txt: "Ajustado / a revisar" },
+    "no-justificado": { cls: "bad", txt: "No justificado" }
+  };
+  const m = map[estado] || { cls: "neutral", txt: "—" };
+  return <span className={"badge " + m.cls}><span className="dot"></span>{m.txt}</span>;
+}
+
+Object.assign(window, { Icon, MoneyInput, CellMoney, MonthGrid, PatrimonioTable, EstadoBadge });
+
+  
+  
+  </script>
+  <script type="text/babel">
+/* ============================================================
+   Secciones principales de la app
+   ============================================================ */
+const Fmt2 = window.Fmt;
+const { Icon, MoneyInput, MonthGrid, PatrimonioTable, EstadoBadge } = window;
+
+/* ---------- Contribuyente ---------- */
+function ContribuyenteSection({ data, onChange }) {
+  const set = (k, v) => onChange(Object.assign({}, data, { [k]: v }));
+  return (
+    <div>
+      <div className="section-head">
+        <h1>Datos del contribuyente</h1>
+        <p>Identificación del monotributista bajo análisis. Estos datos se vuelcan también en la exportación a Excel.</p>
+      </div>
+      <div className="card">
+        <div className="card-head"><Icon.user /><h2>Identificación</h2></div>
+        <div className="card-body">
+          <div className="grid-fields">
+            <div className="field">
+              <label>Nombre y apellido / Razón social</label>
+              <input className="inp" value={data.nombre || ""} placeholder="Ej.: Juan Pérez"
+                onChange={(e) => set("nombre", e.target.value)} />
+            </div>
+            <div className="field">
+              <label>CUIT</label>
+              <input className="inp" value={data.cuit || ""} placeholder="20-12345678-9"
+                onChange={(e) => set("cuit", e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Actividad</label>
+              <input className="inp" value={data.actividad || ""} placeholder="Ej.: Servicios profesionales"
+                onChange={(e) => set("actividad", e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Tipo de actividad</label>
+              <select className="inp" value={data.tipoActividad || "servicios"}
+                onChange={(e) => set("tipoActividad", e.target.value)}>
+                <option value="servicios">Prestación de servicios (cat. A–H)</option>
+                <option value="bienes">Venta de cosas muebles (cat. A–K)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Patrimonio inicial ---------- */
+function PatrimonioInicialSection({ state, onChange, showUsd }) {
+  const anioBase = state.anioBase;
+  const tcBase = (state.anios.find((a) => a.anio === anioBase) || {}).tc || { cierre: 0 };
+  return (
+    <div>
+      <div className="section-head">
+        <h1>Patrimonio inicial</h1>
+        <p>Patrimonio declarado al <strong>1° de enero de {anioBase}</strong> (punto de partida del análisis). A partir de acá, cada año arrastra el cierre del anterior.</p>
+      </div>
+      <div className="card">
+        <div className="card-head"><Icon.wallet /><h2>Composición al inicio</h2>
+          <div className="spacer"></div>
+          <span className="hint">Las deudas se restan del patrimonio neto</span>
+        </div>
+        <div className="card-body">
+          <PatrimonioTable comp={state.patrimonioInicial} showUsd={showUsd} tcCierre={tcBase.cierre}
+            onChange={(comp) => onChange(comp)} />
+        </div>
+      </div>
+      <div className="alert info">
+        <Icon.alert />
+        <div>El patrimonio neto inicial es la base de toda la justificación. Cargá efectivo, bancos, inmuebles, rodados e inversiones a su valor de incorporación, y las deudas pendientes a esa fecha.</div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Panel de un año ---------- */
+function YearPanel({ anio, res, onChange, onDelete, esBase, showUsd, mostrarUsd, prevCierre }) {
+  const MonoData = window.MonoData;
+  const set = (k, v) => onChange(Object.assign({}, anio, { [k]: v }));
+  const setOrigen = (k, v) => set("origenes", Object.assign({}, anio.origenes, { [k]: v }));
+  const setTc = (k, v) => set("tc", Object.assign({}, anio.tc, { [k]: v }));
+
+  const tipo = (state) => {}; // noop placeholder
+  const cats = MonoData.TABLA_2026;
+
+  const verdictMap = {
+    "justificado": { cls: "ok", icon: <Icon.check />, title: "Patrimonio justificado", desc: "Los ingresos cubren el crecimiento patrimonial y un consumo razonable." },
+    "ajustado": { cls: "warn", icon: <Icon.alert />, title: "Situación ajustada", desc: "Cierra, pero el consumido implícito queda por debajo del mínimo razonable. Revisable por ARCA." },
+    "no-justificado": { cls: "bad", icon: <Icon.x />, title: "Incremento no justificado", desc: "El patrimonio creció más de lo que los ingresos declarados permiten justificar." }
+  };
+  const v = verdictMap[res.estado];
+
+  return (
+    <div>
+      <div className="section-head">
+        <div className="flex" style={{ justifyContent: "space-between" }}>
+          <div>
+            <h1>Ejercicio {anio.anio}</h1>
+            <p>Análisis anual (enero a diciembre){esBase ? " · año base del análisis" : " · arrastra el cierre de " + (anio.anio - 1)}.</p>
+          </div>
+          {!esBase && (
+            <button className="btn danger" onClick={onDelete}><Icon.trash />Eliminar año</button>
+          )}
+        </div>
+      </div>
+
+      {/* Veredicto */}
+      <div className={"verdict " + v.cls}>
+        <div className="icon">{v.icon}</div>
+        <div className="txt"><strong>{v.title}</strong><span>{v.desc}</span></div>
+        <div className="amt">
+          <div className="n" style={{ color: res.margen >= 0 ? "var(--ok)" : "var(--bad)" }}>{Fmt2.money(res.margen)}</div>
+          <div className="l">Margen p/ incorporar bienes</div>
+        </div>
+      </div>
+
+      {/* Encuadre */}
+      <div className="card">
+        <div className="card-head"><Icon.calendar /><h2>Encuadre y tipo de cambio</h2></div>
+        <div className="card-body">
+          <div className="grid-fields">
+            <div className="field">
+              <label>Categoría monotributo</label>
+              <select className="inp" value={anio.categoria}
+                onChange={(e) => { const c = e.target.value; set("categoria", c); const t = MonoData.topePorCategoria(c); onChange(Object.assign({}, anio, { categoria: c, topeAnual: t })); }}>
+                {cats.map((c) => <option key={c.cat} value={c.cat}>Cat. {c.cat} — {Fmt2.money(c.tope)}{c.soloBienes ? " (sólo bienes)" : ""}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Tope anual de la categoría <span className="desc">(editable p/ años anteriores)</span></label>
+              <MoneyInput value={anio.topeAnual} onChange={(val) => set("topeAnual", val)} prefix="$" />
+            </div>
+            <div className="field">
+              <label>TC promedio del año <span className="desc">($/USD, para flujos)</span></label>
+              <MoneyInput value={anio.tc.prom} onChange={(val) => setTc("prom", val)} prefix="$" />
+            </div>
+            <div className="field">
+              <label>TC al cierre <span className="desc">($/USD, para patrimonio)</span></label>
+              <MoneyInput value={anio.tc.cierre} onChange={(val) => setTc("cierre", val)} prefix="$" />
+            </div>
+          </div>
+          {res.excedeTope && (
+            <div className="alert warn"><Icon.alert />
+              <div>La facturación anual ({Fmt2.money(res.ingresosAnuales)}) <strong>supera el tope</strong> de la categoría {anio.categoria} ({Fmt2.money(res.topeAnual)}). Correspondería recategorizar o pasar al régimen general.</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ingresos y compras mensuales */}
+      <div className="card">
+        <div className="card-head"><Icon.chart /><h2>Facturación y compras — mensual</h2>
+          <div className="spacer"></div>
+          <span className="hint">Caja presunta = ventas facturadas − compras</span>
+        </div>
+        <div className="card-body">
+          <div className="field" style={{ marginBottom: 8 }}><label>Ventas facturadas (monotributo)</label></div>
+          <MonthGrid values={anio.ingresosMensuales} onChange={(arr) => set("ingresosMensuales", arr)} />
+          <div className="divider"></div>
+          <div className="field" style={{ marginBottom: 8 }}><label>Compras / gastos de la actividad</label></div>
+          <MonthGrid values={anio.comprasMensuales} onChange={(arr) => set("comprasMensuales", arr)} />
+
+          <div className="result-grid" style={{ marginTop: 16 }}>
+            <div className="stat">
+              <div className="lbl">Facturado anual</div>
+              <div className="val">{Fmt2.money(res.ingresosAnuales)}</div>
+              {mostrarUsd && <div className="usd">{Fmt2.money(res.usd.ingresosAnuales, { usd: true })}</div>}
+            </div>
+            <div className="stat">
+              <div className="lbl">Compras anual</div>
+              <div className="val">{Fmt2.money(res.comprasAnuales)}</div>
+            </div>
+            <div className="stat">
+              <div className="lbl">Caja presunta del año</div>
+              <div className={"val " + (res.cajaPresuntaAnio >= 0 ? "pos" : "neg")}>{Fmt2.money(res.cajaPresuntaAnio)}</div>
+            </div>
+            <div className="stat">
+              <div className="lbl">Caja presunta acumulada</div>
+              <div className="val">{Fmt2.money(res.cajaPresuntaAcum)}</div>
+              {mostrarUsd && <div className="usd">{Fmt2.money(res.usd.cajaPresuntaAcum, { usd: true })}</div>}
+            </div>
+          </div>
+          <div className="alert info"><Icon.alert />
+            <div>La <strong>caja presunta acumulada</strong> es el efectivo que se presume disponible (lo facturado menos lo comprado, sumado año a año desde el inicio). Debería verse reflejado en “Efectivo y bancos” / “Inversiones” del patrimonio, neto de consumo.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Otros orígenes */}
+      <div className="card">
+        <div className="card-head"><Icon.wallet /><h2>Otros orígenes que justifican</h2>
+          <div className="spacer"></div>
+          <span className="hint">Conceptos que financian incrementos además de la facturación</span>
+        </div>
+        <div className="card-body">
+          <div className="grid-fields">
+            {esBase && (
+              <div className="field">
+                <label>Ahorros de años anteriores</label>
+                <span className="desc">Sólo si no están ya en el patrimonio inicial.</span>
+                <MoneyInput value={anio.origenes.ahorrosPrevios} onChange={(v) => setOrigen("ahorrosPrevios", v)} prefix="$" />
+              </div>
+            )}
+            <div className="field">
+              <label>Préstamos / financiación recibida</label>
+              <MoneyInput value={anio.origenes.prestamos} onChange={(v) => setOrigen("prestamos", v)} prefix="$" />
+            </div>
+            <div className="field">
+              <label>Donaciones o herencias</label>
+              <MoneyInput value={anio.origenes.herencias} onChange={(v) => setOrigen("herencias", v)} prefix="$" />
+            </div>
+            <div className="field">
+              <label>Venta de otros bienes (cobrado)</label>
+              <MoneyInput value={anio.origenes.ventaBienes} onChange={(v) => setOrigen("ventaBienes", v)} prefix="$" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Patrimonio al cierre */}
+      <div className="card">
+        <div className="card-head"><Icon.wallet /><h2>Patrimonio al 31/12/{anio.anio}</h2>
+          <div className="spacer"></div>
+          <button className="btn ghost" style={{ fontSize: 12, padding: "5px 9px" }}
+            onClick={() => set("patrimonioCierre", Object.assign({}, prevCierre))}>
+            <Icon.reset style={{ width: 13, height: 13 }} />Traer {esBase ? "patrimonio inicial" : "cierre " + (anio.anio - 1)}
+          </button>
+          <span className="hint">Incluí acá los bienes incorporados en el año</span>
+        </div>
+        <div className="card-body">
+          <PatrimonioTable comp={anio.patrimonioCierre} showUsd={mostrarUsd} tcCierre={anio.tc.cierre}
+            onChange={(comp) => set("patrimonioCierre", comp)} />
+          <div className="result-grid" style={{ marginTop: 14 }}>
+            <div className="stat">
+              <div className="lbl">PN al inicio</div>
+              <div className="val">{Fmt2.money(res.pnInicio)}</div>
+            </div>
+            <div className="stat">
+              <div className="lbl">PN al cierre</div>
+              <div className="val">{Fmt2.money(res.pnCierre)}</div>
+              {mostrarUsd && <div className="usd">{Fmt2.money(res.usd.pnCierre, { usd: true })}</div>}
+            </div>
+            <div className="stat">
+              <div className="lbl">Variación patrimonial</div>
+              <div className={"val " + (res.variacionPatrimonial >= 0 ? "pos" : "neg")}>{Fmt2.money(res.variacionPatrimonial)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Consumo + Cuadro de justificación */}
+      <div className="card">
+        <div className="card-head"><Icon.table /><h2>Cuadro de justificación y consumido</h2></div>
+        <div className="card-body">
+          <div className="field" style={{ maxWidth: 320, marginBottom: 18 }}>
+            <label>Consumo mínimo razonable (anual)</label>
+            <span className="desc">Gastos de vida estimados. Sirve para juzgar si el consumido implícito es plausible.</span>
+            <MoneyInput value={anio.consumoMinimo} onChange={(val) => set("consumoMinimo", val)} prefix="$" />
+          </div>
+
+          <div className="justif">
+            <div className="col">
+              <h3>Orígenes (lo que justifica)</h3>
+              <div className="row"><span>Patrimonio neto al inicio</span><span className="v">{Fmt2.money(res.pnInicio)}</span></div>
+              <div className="row"><span>+ Facturación del año</span><span className="v">{Fmt2.money(res.ingresosAnuales)}</span></div>
+              <div className="row"><span>+ Otros orígenes</span><span className="v">{Fmt2.money(res.otrosOrigenes)}</span></div>
+              <div className="row total"><span>Total orígenes</span><span className="v">{Fmt2.money(res.pnInicio + res.totalOrigenes)}</span></div>
+            </div>
+            <div className="col">
+              <h3>Aplicaciones (lo que se usa)</h3>
+              <div className="row"><span>Patrimonio neto al cierre</span><span className="v">{Fmt2.money(res.pnCierre)}</span></div>
+              <div className="row"><span>+ Consumido implícito</span><span className="v" style={{ color: res.consumidoImplicito < 0 ? "var(--bad)" : "inherit" }}>{Fmt2.money(res.consumidoImplicito)}</span></div>
+              <div className="row total"><span>Total aplicaciones</span><span className="v">{Fmt2.money(res.pnCierre + res.consumidoImplicito)}</span></div>
+            </div>
+          </div>
+
+          <div className="result-grid" style={{ marginTop: 18 }}>
+            <div className="stat">
+              <div className="lbl">Consumido implícito</div>
+              <div className={"val " + (res.consumidoImplicito < 0 ? "neg" : "")}>{Fmt2.money(res.consumidoImplicito)}</div>
+              {mostrarUsd && <div className="usd">{Fmt2.money(res.usd.consumidoImplicito, { usd: true })}</div>}
+            </div>
+            <div className="stat">
+              <div className="lbl">Consumo mínimo</div>
+              <div className="val">{Fmt2.money(res.consumoMinimo)}</div>
+            </div>
+            <div className="stat">
+              <div className="lbl">Margen p/ bienes</div>
+              <div className={"val " + (res.margen >= 0 ? "pos" : "neg")}>{Fmt2.money(res.margen)}</div>
+              {mostrarUsd && <div className="usd">{Fmt2.money(res.usd.margen, { usd: true })}</div>}
+            </div>
+            <div className="stat">
+              <div className="lbl">Estado</div>
+              <div style={{ marginTop: 8 }}><EstadoBadge estado={res.estado} /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ContribuyenteSection, PatrimonioInicialSection, YearPanel });
+
+  
+  
+  </script>
+  <script type="text/babel">
+/* ============================================================
+   Resumen consolidado + Tabla de referencia del Monotributo
+   ============================================================ */
+const Fmt3 = window.Fmt;
+const { Icon, EstadoBadge } = window;
+
+function ResumenSection({ computed, state, mostrarUsd }) {
+  const r = computed.resultados;
+  const s = computed.resumen;
+  const cruceDiff = s.liquidezDeclaradaFinal - s.cajaPresuntaAcum;
+
+  return (
+    <div>
+      <div className="section-head">
+        <h1>Resumen consolidado</h1>
+        <p>Evolución año a año del patrimonio, el consumido y la caja presunta. Detectá rápido en qué ejercicios hay incrementos sin justificar.</p>
+      </div>
+
+      <div className="result-grid" style={{ marginBottom: 20 }}>
+        <div className="stat">
+          <div className="lbl">PN inicial</div>
+          <div className="val">{Fmt3.money(computed.patrimonioNetoInicial)}</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">PN final</div>
+          <div className="val">{Fmt3.money(s.pnFinal)}</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">Crecimiento patrimonial</div>
+          <div className={"val " + (s.crecimientoPatrimonial >= 0 ? "pos" : "neg")}>{Fmt3.money(s.crecimientoPatrimonial)}</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">Facturación total</div>
+          <div className="val">{Fmt3.money(s.totalIngresos)}</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">Caja presunta acum.</div>
+          <div className="val">{Fmt3.money(s.cajaPresuntaAcum)}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head"><Icon.table /><h2>Evolución año a año</h2></div>
+        <div className="card-body tight">
+          <div className="summary-wrap">
+            <table className="tbl summary">
+              <thead>
+                <tr>
+                  <th>Año</th>
+                  <th>Facturado</th>
+                  <th>PN cierre</th>
+                  <th>Δ Patrim.</th>
+                  <th>Consumido</th>
+                  <th>Caja acum.</th>
+                  <th>Margen</th>
+                  <th style={{ textAlign: "left" }}>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.map((y) => (
+                  <tr key={y.anio}>
+                    <td className="mono">{y.anio}</td>
+                    <td className="num">{Fmt3.money(y.ingresosAnuales)}</td>
+                    <td className="num">{Fmt3.money(y.pnCierre)}</td>
+                    <td className="num">{Fmt3.money(y.variacionPatrimonial)}</td>
+                    <td className="num" style={{ color: y.consumidoImplicito < 0 ? "var(--bad)" : "inherit" }}>{Fmt3.money(y.consumidoImplicito)}</td>
+                    <td className="num">{Fmt3.money(y.cajaPresuntaAcum)}</td>
+                    <td className="num" style={{ color: y.margen >= 0 ? "var(--ok)" : "var(--bad)" }}>{Fmt3.money(y.margen)}</td>
+                    <td><EstadoBadge estado={y.estado} /></td>
+                  </tr>
+                ))}
+                {r.length === 0 && <tr><td colSpan="8" className="empty">Cargá al menos un año para ver el resumen.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head"><Icon.wallet /><h2>Cruce de liquidez — efectivo presunto vs. declarado</h2></div>
+        <div className="card-body">
+          <div className="justif">
+            <div className="col">
+              <div className="row"><span>Caja presunta acumulada (facturado − comprado)</span><span className="v">{Fmt3.money(s.cajaPresuntaAcum)}</span></div>
+              <div className="row"><span>Liquidez declarada al cierre (efectivo + inversiones)</span><span className="v">{Fmt3.money(s.liquidezDeclaradaFinal)}</span></div>
+              <div className="row total"><span>Diferencia</span><span className="v" style={{ color: cruceDiff < 0 ? "var(--bad)" : "var(--ok)" }}>{Fmt3.money(cruceDiff)}</span></div>
+            </div>
+            <div className="col">
+              <div className="alert info" style={{ marginTop: 0 }}><Icon.alert />
+                <div>Si la liquidez declarada es <strong>mayor</strong> a la caja presunta, ese excedente debe justificarse con otros orígenes (préstamos, herencias, ventas). Si es <strong>menor</strong>, se presume que la diferencia se consumió o se volcó a otros bienes.</div>
+              </div>
+            </div>
+          </div>
+          {(s.aniosNoJustificados > 0 || s.aniosAjustados > 0) && (
+            <div className="alert warn"><Icon.alert />
+              <div>
+                {s.aniosNoJustificados > 0 && <span><strong>{s.aniosNoJustificados}</strong> ejercicio(s) con incremento no justificado. </span>}
+                {s.aniosAjustados > 0 && <span><strong>{s.aniosAjustados}</strong> ejercicio(s) en situación ajustada (consumido por debajo del mínimo). </span>}
+                Revisá esos años antes de incorporar nuevos bienes.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TablaMonotributoSection() {
+  const cats = window.MonoData.TABLA_2026;
+  return (
+    <div>
+      <div className="section-head">
+        <h1>Tabla del Monotributo 2026</h1>
+        <p>Topes anuales de ingresos brutos por categoría. Escala vigente desde 01/02/2026 (ARCA / ex-AFIP). Las categorías I, J y K aplican sólo a venta de cosas muebles.</p>
+      </div>
+      <div className="card">
+        <div className="card-head"><Icon.table /><h2>Topes de facturación anual</h2></div>
+        <div className="card-body tight">
+          <table className="tbl">
+            <thead>
+              <tr><th>Categoría</th><th>Tope ingresos brutos anuales</th><th style={{ textAlign: "left" }}>Alcance</th></tr>
+            </thead>
+            <tbody>
+              {cats.map((c) => (
+                <tr key={c.cat}>
+                  <td className="mono"><strong>{c.cat}</strong></td>
+                  <td className="num">{Fmt3.money(c.tope)}</td>
+                  <td>{c.soloBienes ? "Sólo venta de cosas muebles" : "Servicios y venta de bienes"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="alert warn"><Icon.alert />
+        <div>Para ejercicios anteriores (2020–2025) los topes eran menores y cambiaban cada semestre. Ajustá el <strong>“Tope anual de la categoría”</strong> dentro de cada año según la escala vigente en ese período.</div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ResumenSection, TablaMonotributoSection });
+
+  
+  
+  </script>
+  <script type="text/babel">
+/* ============================================================
+   App principal — multi-contribuyente
+   ============================================================ */
+const { useState: useStateA, useEffect: useEffectA, useMemo } = React;
+const FmtA = window.Fmt;
+const MonoDataA = window.MonoData;
+const { Icon, ContribuyenteSection, PatrimonioInicialSection, TablaMonotributoSection, ResumenSection, YearPanel } = window;
+
+const LEGACY_KEY = "monotributo-analisis-v1";
+const DB_KEY     = "mono-db-v1"; /* fallback local, ya no es la fuente de verdad */
+
+function emptyComp() {
+  return { inmuebles: 0, rodados: 0, efectivo: 0, inversiones: 0, muebles: 0, deudas: 0 };
+}
+function emptyYear(anio, categoria) {
+  const cat = categoria || "D";
+  return {
+    anio: anio, categoria: cat,
+    topeAnual: MonoDataA.topePorCategoria(cat),
+    tc: MonoDataA.tcParaAnio(anio),
+    ingresosMensuales: new Array(12).fill(0),
+    comprasMensuales: new Array(12).fill(0),
+    origenes: { ahorrosPrevios: 0, prestamos: 0, herencias: 0, ventaBienes: 0 },
+    patrimonioCierre: emptyComp(),
+    consumoMinimo: 0
+  };
+}
+function defaultClientState(nombre) {
+  const base = 2020;
+  const anios = [];
+  for (let y = base; y <= 2026; y++) anios.push(emptyYear(y));
+  return {
+    contribuyente: { nombre: nombre || "", cuit: "", actividad: "", tipoActividad: "servicios" },
+    patrimonioInicial: emptyComp(),
+    anioBase: base,
+    anios: anios
+  };
+}
+function genId() { return "c" + Date.now() + Math.random().toString(36).slice(2, 6); }
+
+function emptyDB() {
+  const id = genId();
+  return { clientes: [{ id: id, state: defaultClientState("") }], activeId: id };
+}
+
+/* Migra datos viejos de localStorage (un solo uso, la primera vez que alguien
+   entra ya logueado y la nube todavía no tiene nada) */
+function loadLocalLegacyDB() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) {
+      const db = JSON.parse(raw);
+      if (db && db.clientes && db.clientes.length) return db;
+    }
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      if (parsed && parsed.anios) {
+        const id = genId();
+        return { clientes: [{ id: id, state: parsed }], activeId: id };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+/* ============================================================
+   Pantalla de Login
+   ============================================================ */
+function LoginScreen() {
+  const [email, setEmail] = useStateA("");
+  const [pass, setPass]   = useStateA("");
+  const [err, setErr]     = useStateA("");
+  const [loading, setLoading] = useStateA(false);
+
+  function doLogin(e) {
+    e.preventDefault();
+    setErr(""); setLoading(true);
+    fbAuth.signInWithEmailAndPassword(email, pass)
+      .catch(function(error) {
+        let msg = "No se pudo iniciar sesión.";
+        if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+          msg = "Email o contraseña incorrectos.";
+        } else if (error.code === "auth/invalid-email") {
+          msg = "El email no es válido.";
+        } else if (error.code === "auth/too-many-requests") {
+          msg = "Demasiados intentos. Probá de nuevo en unos minutos.";
+        }
+        setErr(msg);
+      })
+      .finally(function() { setLoading(false); });
+  }
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)"}}>
+      <form onSubmit={doLogin} style={{width:360,maxWidth:"90vw",background:"var(--white)",border:"1px solid var(--line)",borderRadius:"var(--radius)",padding:"32px 28px",boxShadow:"var(--shadow-md)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:0,lineHeight:1,marginBottom:28,justifyContent:"center"}}>
+          <span style={{fontSize:18,color:"var(--ink-400)",fontWeight:400,fontFamily:"Georgia,serif"}}>[</span>
+          <div style={{padding:"0 8px",textAlign:"center"}}>
+            <div style={{fontFamily:"Georgia,'Times New Roman',serif",fontWeight:700,fontSize:17,letterSpacing:"0.04em",color:"var(--ink-900)",textTransform:"uppercase",lineHeight:1.1}}>LÓPEZ CASTRO</div>
+            <div style={{fontFamily:"var(--font-sans)",fontWeight:500,fontSize:8,letterSpacing:"0.18em",color:"var(--ink-500)",textTransform:"uppercase",marginTop:3}}>ESTRATEGIAS IMPOSITIVAS</div>
+          </div>
+          <span style={{fontSize:18,color:"var(--ink-400)",fontWeight:400,fontFamily:"Georgia,serif"}}>]</span>
+        </div>
+
+        <div style={{fontSize:13,fontWeight:600,color:"var(--ink-700)",textAlign:"center",marginBottom:20}}>
+          Análisis Patrimonial — Acceso al estudio
+        </div>
+
+        <label style={{display:"block",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"var(--ink-500)",marginBottom:5}}>Email</label>
+        <input type="email" required autoFocus className="inp" style={{width:"100%",marginBottom:14}}
+          value={email} onChange={function(e){ setEmail(e.target.value); }} placeholder="nombre@estudio.com" />
+
+        <label style={{display:"block",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"var(--ink-500)",marginBottom:5}}>Contraseña</label>
+        <input type="password" required className="inp" style={{width:"100%",marginBottom:18}}
+          value={pass} onChange={function(e){ setPass(e.target.value); }} placeholder="••••••••" />
+
+        {err && (
+          <div style={{background:"var(--bad-soft)",color:"var(--bad)",fontSize:12,padding:"8px 11px",borderRadius:"var(--radius-sm)",marginBottom:14}}>{err}</div>
+        )}
+
+        <button type="submit" className="btn primary" disabled={loading} style={{width:"100%",justifyContent:"center",padding:"10px 0"}}>
+          {loading ? "Ingresando…" : "Ingresar"}
+        </button>
+
+        <div style={{fontSize:11,color:"var(--ink-400)",textAlign:"center",marginTop:18}}>
+          Acceso exclusivo para personal del estudio.<br/>Los usuarios se crean desde la consola de Firebase.
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ============================================================
+   App principal (autenticada) — sincronizada con Firestore
+   ============================================================ */
+function MainApp() {
+  const [db, setDbLocal] = useStateA(null);   /* null = cargando desde la nube */
+  const [view, setView] = useStateA("contribuyente");
+  const [mostrarUsd, setMostrarUsd] = useStateA(false);
+  const [showClientPanel, setShowClientPanel] = useStateA(false);
+  const [newClientName, setNewClientName] = useStateA("");
+  const [syncing, setSyncing] = useStateA(false);
+  const skipNextWrite = React.useRef(false);
+
+  /* Suscripción en tiempo real a Firestore */
+  useEffectA(function() {
+    const unsub = fsDocRef().onSnapshot(function(snap) {
+      if (snap.exists) {
+        skipNextWrite.current = true;
+        setDbLocal(snap.data());
+      } else {
+        /* Primera vez: ver si hay datos locales viejos para migrar, si no, DB vacía */
+        const legacy = loadLocalLegacyDB();
+        const initial = legacy || emptyDB();
+        fsDocRef().set(initial).then(function() {
+          skipNextWrite.current = true;
+          setDbLocal(initial);
+        });
+      }
+    }, function(error) {
+      console.error("Firestore onSnapshot error:", error);
+    });
+    return function() { unsub(); };
+  }, []);
+
+  /* Escribe a Firestore cada vez que cambia el estado local (salvo cuando el cambio vino de la nube) */
+  useEffectA(function() {
+    if (db == null) return;
+    if (skipNextWrite.current) { skipNextWrite.current = false; return; }
+    setSyncing(true);
+    fsDocRef().set(db)
+      .catch(function(e){ console.error("Error guardando en la nube:", e); })
+      .finally(function(){ setSyncing(false); });
+  }, [db]);
+
+  if (db == null) {
+    return (
+      <div className="empty" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        Cargando datos del estudio…
+      </div>
+    );
+  }
+
+  const activeClient = db.clientes.find(function(c) { return c.id === db.activeId; }) || db.clientes[0];
+  const state = activeClient.state;
+
+  function setState(updater) {
+    setDbLocal(function(db) {
+      const next = db.clientes.map(function(c) {
+        if (c.id === db.activeId) {
+          const newState = typeof updater === "function" ? updater(c.state) : updater;
+          return { id: c.id, state: newState };
+        }
+        return c;
+      });
+      return { clientes: next, activeId: db.activeId };
+    });
+  }
+
+  const computed = useMemo(function() { return window.MonoCalc.computeAll(state); }, [state]);
+  const anios = state.anios.slice().sort(function(a, b) { return a.anio - b.anio; });
+
+  function updateYear(anio, nextYear) {
+    setState(function(s) {
+      return { ...s, anios: s.anios.map(function(a) { return a.anio === anio ? nextYear : a; }) };
+    });
+  }
+  function addYear() {
+    const max = anios.length ? anios[anios.length - 1].anio : state.anioBase - 1;
+    const lastCat = anios.length ? anios[anios.length - 1].categoria : "D";
+    const ny = emptyYear(max + 1, lastCat);
+    if (anios.length) ny.patrimonioCierre = Object.assign({}, anios[anios.length - 1].patrimonioCierre);
+    setState(function(s) { return { ...s, anios: [...s.anios, ny] }; });
+    setView("year-" + (max + 1));
+  }
+  function deleteYear(anio) {
+    if (!confirm("¿Eliminar el ejercicio " + anio + "? Se perderán sus datos.")) return;
+    setState(function(s) { return { ...s, anios: s.anios.filter(function(a) { return a.anio !== anio; }) }; });
+    setView("resumen");
+  }
+
+  function switchClient(id) {
+    setDbLocal(function(db) { return { clientes: db.clientes, activeId: id }; });
+    setView("contribuyente");
+    setShowClientPanel(false);
+  }
+  function addClient() {
+    const name = newClientName.trim();
+    if (!name) return;
+    const id = genId();
+    const newEntry = { id: id, state: defaultClientState(name) };
+    setDbLocal(function(db) { return { clientes: db.clientes.concat([newEntry]), activeId: id }; });
+    setNewClientName("");
+    setView("contribuyente");
+    setShowClientPanel(false);
+  }
+  function deleteClient(id) {
+    if (db.clientes.length <= 1) { alert("Debe haber al menos un contribuyente."); return; }
+    const found = db.clientes.find(function(c) { return c.id === id; });
+    const nombre = (found && found.state && found.state.contribuyente && found.state.contribuyente.nombre) || "este contribuyente";
+    if (!confirm("¿Eliminar a " + nombre + " y todos sus datos? Esta acción no se puede deshacer.")) return;
+    setDbLocal(function(db) {
+      const next = db.clientes.filter(function(c) { return c.id !== id; });
+      const newActive = db.activeId === id ? next[0].id : db.activeId;
+      return { clientes: next, activeId: newActive };
+    });
+    setShowClientPanel(false);
+  }
+  function resetClient() {
+    if (!confirm("¿Borrar todos los datos del contribuyente activo y empezar de cero?")) return;
+    setState(defaultClientState(""));
+    setView("contribuyente");
+  }
+  function doLogout() {
+    if (!confirm("¿Cerrar sesión?")) return;
+    fbAuth.signOut();
+  }
+
+  const activeYear = view.startsWith("year-") ? parseInt(view.slice(5), 10) : null;
+  const activeIdx  = activeYear != null ? anios.findIndex(function(a) { return a.anio === activeYear; }) : -1;
+  function dotClass(estado) {
+    return estado === "justificado" ? "dot-ok" : estado === "ajustado" ? "dot-warn" : estado === "no-justificado" ? "dot-bad" : "dot-neutral";
+  }
+
+  const nombreActivo = (state.contribuyente && state.contribuyente.nombre) || "Sin nombre";
+
+  let content;
+  if (view === "contribuyente") {
+    content = <ContribuyenteSection data={state.contribuyente} onChange={function(c) { setState(function(s) { return { ...s, contribuyente: c }; }); }} />;
+  } else if (view === "patrimonio-inicial") {
+    content = <PatrimonioInicialSection state={state} showUsd={mostrarUsd}
+      onChange={function(comp) { setState(function(s) { return { ...s, patrimonioInicial: comp }; }); }} />;
+  } else if (view === "tabla") {
+    content = <TablaMonotributoSection />;
+  } else if (view === "resumen") {
+    content = <ResumenSection computed={computed} state={state} mostrarUsd={mostrarUsd} />;
+  } else if (activeIdx >= 0) {
+    const a = anios[activeIdx];
+    const prevCierre = activeIdx === 0 ? state.patrimonioInicial : anios[activeIdx - 1].patrimonioCierre;
+    content = <YearPanel anio={a} res={computed.resultados[activeIdx]} esBase={activeIdx === 0}
+      mostrarUsd={mostrarUsd} prevCierre={prevCierre}
+      onChange={function(ny) { updateYear(a.anio, ny); }} onDelete={function() { deleteYear(a.anio); }} />;
+  } else {
+    content = <div className="empty">Seleccioná una sección.</div>;
+  }
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          <img src="data:image/png;base64,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" style={{height:"34px", mixBlendMode:"multiply"}} alt="López Castro" />
+          <div>
+            <div className="title">Análisis Patrimonial</div>
+            <div className="sub">Monotributistas · justificación de bienes</div>
+          </div>
+        </div>
+        <div className="spacer"></div>
+
+        <div style={{fontSize:11,color:"var(--ink-400)",display:"flex",alignItems:"center",gap:5,marginRight:4}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background: syncing ? "var(--warn)" : "var(--ok)",display:"inline-block",transition:"background 0.3s"}}></span>
+          {syncing ? "Sincronizando…" : "Sincronizado"}
+        </div>
+
+        <div style={{position:"relative"}}>
+          <button className="btn ghost client-btn" onClick={function() { setShowClientPanel(function(v) { return !v; }); }}>
+            <Icon.user style={{width:15,height:15}}/>
+            <span style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreActivo}</span>
+            <span style={{fontSize:10,opacity:0.6,marginLeft:4}}>&#9662;</span>
+          </button>
+
+          {showClientPanel && (
+            <div className="client-panel">
+              <div className="cp-head">Contribuyentes guardados</div>
+              <div className="cp-list">
+                {db.clientes.map(function(c) {
+                  const nom  = (c.state && c.state.contribuyente && c.state.contribuyente.nombre) || "Sin nombre";
+                  const cuit = (c.state && c.state.contribuyente && c.state.contribuyente.cuit)   || "";
+                  const isActive = c.id === db.activeId;
+                  return (
+                    <div key={c.id} className={"cp-item" + (isActive ? " active" : "")}>
+                      <button className="cp-select" onClick={function() { switchClient(c.id); }}>
+                        <span className="cp-name">{nom}</span>
+                        {cuit && <span className="cp-cuit">{cuit}</span>}
+                      </button>
+                      {!isActive && (
+                        <button className="cp-del" onClick={function() { deleteClient(c.id); }} title="Eliminar">&#215;</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="cp-new">
+                <input
+                  className="inp cp-input"
+                  placeholder="Nombre del nuevo contribuyente"
+                  value={newClientName}
+                  onChange={function(e) { setNewClientName(e.target.value); }}
+                  onKeyDown={function(e) { if (e.key === "Enter" && newClientName.trim()) addClient(); }}
+                />
+                <button className="btn primary cp-add-btn" onClick={addClient}>
+                  <Icon.plus style={{width:14,height:14}}/>Agregar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="toggle-usd">
+          <button className={!mostrarUsd ? "active" : ""} onClick={function() { setMostrarUsd(false); }}>ARS</button>
+          <button className={mostrarUsd ? "active" : ""} onClick={function() { setMostrarUsd(true); }}>ARS + USD</button>
+        </div>
+        <button className="btn ghost" onClick={resetClient}><Icon.reset />Reiniciar</button>
+        <button className="btn" style={{background:"#6366f1",borderColor:"#6366f1",color:"white"}} onClick={function() { window.generarReportePDF(state, computed); }}><Icon.chart style={{width:15,height:15}}/>Reporte</button>
+        <button className="btn primary" onClick={function() { window.exportExcel(state, computed); }}><Icon.download />Exportar Excel</button>
+        <button className="btn ghost" onClick={doLogout} title="Cerrar sesión"><Icon.x style={{width:15,height:15}}/></button>
+      </header>
+
+      <div className="body">
+        <nav className="sidenav">
+          <div className="group-label">General</div>
+          <button className={"navitem" + (view === "contribuyente" ? " active" : "")} onClick={function() { setView("contribuyente"); }}>
+            <Icon.user style={{width:16,height:16}}/>Contribuyente
+          </button>
+          <button className={"navitem" + (view === "patrimonio-inicial" ? " active" : "")} onClick={function() { setView("patrimonio-inicial"); }}>
+            <Icon.wallet style={{width:16,height:16}}/>Patrimonio inicial
+          </button>
+          <button className={"navitem" + (view === "tabla" ? " active" : "")} onClick={function() { setView("tabla"); }}>
+            <Icon.table style={{width:16,height:16}}/>Tabla Monotributo
+          </button>
+
+          <div className="group-label">Ejercicios</div>
+          {anios.map(function(a, i) {
+            return (
+              <button key={a.anio} className={"navitem" + (view === "year-" + a.anio ? " active" : "")} onClick={function() { setView("year-" + a.anio); }}>
+                <span className={"dot " + dotClass(computed.resultados[i].estado)}></span>
+                Año {a.anio}
+                <span className="yr-badge subtle">{FmtA.money(computed.resultados[i].pnCierre).replace("$ ", "$")}</span>
+              </button>
+            );
+          })}
+          <button className="navitem" onClick={addYear} style={{color:"var(--accent-strong)"}}>
+            <Icon.plus style={{width:16,height:16}}/>Agregar año
+          </button>
+
+          <div className="group-label">Análisis</div>
+          <button className={"navitem" + (view === "resumen" ? " active" : "")} onClick={function() { setView("resumen"); }}>
+            <Icon.chart style={{width:16,height:16}}/>Resumen consolidado
+          </button>
+        </nav>
+
+        <main className="main">{content}</main>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Root — decide entre Login y MainApp según estado de auth
+   ============================================================ */
+function Root() {
+  const [user, setUser] = useStateA(undefined); /* undefined = todavía no se sabe */
+
+  useEffectA(function() {
+    const unsub = fbAuth.onAuthStateChanged(function(u) { setUser(u); });
+    return function() { unsub(); };
+  }, []);
+
+  if (user === undefined) {
+    return (
+      <div className="empty" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        Verificando sesión…
+      </div>
+    );
+  }
+  if (!user) {
+    return <LoginScreen />;
+  }
+  return <MainApp />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
+
+
+  
+  </script>
+</body>
+</html>
